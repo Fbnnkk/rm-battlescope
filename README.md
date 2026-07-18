@@ -10,6 +10,8 @@ RM BattleScope 目前处于早期开发阶段。部分战斗关系和规则状�
 
 [在哔哩哔哩观看 RM BattleScope 演示视频](https://www.bilibili.com/video/BV1UvKN6LENV/)
 
+[在线体验：北部赛区第 90 场第 1 局静态回放](https://ezthor.github.io/rm-battlescope/replays/north-region-match-90-game-1/)
+
 ## 功能概览
 
 ### 稳定功能
