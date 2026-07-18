@@ -1,0 +1,8 @@
+name: rmuc2026
+channels:
+  - defaults
+dependencies:
+  - python=3.13
+  - matplotlib
+  - numpy
+  - pillow

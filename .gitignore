@@ -1,0 +1,28 @@
+# Workspace-local Conda environment
+.conda/
+.agents/
+.codex/
+
+# Python caches
+__pycache__/
+*.py[cod]
+
+# Explicit query exports
+outputs/
+*.csv
+*.jsonl
+
+# Downloaded datasets and local databases
+rmuc_2026_region_dataset/
+*.sqlite
+*.sqlite3
+*.db
+*.7z
+
+# Rulebooks and other locally downloaded documents
+*.pdf
+
+# SQLite sidecars (the source database itself is preserved)
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite-journal
