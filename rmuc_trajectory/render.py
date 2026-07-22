@@ -242,6 +242,8 @@ def render_interactive_html(
     respawn_intervals: list[RespawnInterval] | None = None,
     dart_impacts: list[DartImpact] | None = None,
     return_url: str | None = None,
+    scores: list[dict[str, Any]] | None = None,
+    timeseries_scores: dict[str, list[dict[str, Any]]] | None = None,
 ) -> None:
     image_b64 = base64.b64encode(canvas.image_path.read_bytes()).decode("ascii")
     payload = {
@@ -269,6 +271,8 @@ def render_interactive_html(
         "paid_revivals": [revival.to_jsonable() for revival in (paid_revivals or [])],
         "respawn_intervals": [interval.to_jsonable() for interval in (respawn_intervals or [])],
         "dart_impacts": [impact.to_jsonable() for impact in (dart_impacts or [])],
+        "scores": scores or [],
+        "timeseries_scores": timeseries_scores or {},
     }
     data = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
     return_button = (
@@ -297,7 +301,7 @@ input[type=range] {{ flex: 1; min-width: 220px; }}
 .stage {{ position: relative; aspect-ratio: 28 / 15; width: 100%; }}
 canvas {{ position: absolute; inset: 0; width: 100%; height: 100%; }}
 .battle-grid {{ display: grid; grid-template-columns: minmax(168px, 202px) minmax(0, 1fr) minmax(168px, 202px); gap: 8px; align-items: start; }}
-.roster {{ display: grid; gap: 5px; }}
+.roster {{ display: grid; max-width: 200px; gap: 5px; }}
 .roster-title {{ display: flex; justify-content: space-between; align-items: baseline; padding: 2px 4px; }}
 .roster-title strong {{ white-space: nowrap; }} .roster-title .muted {{ min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }}
 .unit-card, .objective-card {{ border: 1px solid #3b3b3b; border-left: 3px solid var(--team); background: rgba(29,29,29,.92); padding: 5px 7px; min-width: 0; }}
@@ -313,6 +317,18 @@ canvas {{ position: absolute; inset: 0; width: 100%; height: 100%; }}
 .respawn-fill {{ height: 100%; width: 0; background: #ffd54a; transition: width .12s linear; }}
 .respawn-fill.paid {{ background: #69f0ae; }}
 .unit-stats {{ display: grid; grid-template-columns: 1fr 1fr; gap: 2px 6px; margin-top: 4px; color: #cfcfcf; font-size: 11px; }}
+.dmg-text {{ font-size: 11px; color: #ff9800; min-width: 38px; text-align: right; flex-shrink: 0; }}
+.kda-text {{ font-size: 11px; color: #aaa; min-width: 42px; text-align: center; flex-shrink: 0; }}
+.score-row {{ display: flex; align-items: center; gap: 4px; margin-top: 3px; }}
+.score-label {{ font-size: 10px; color: #888; width: 24px; flex-shrink: 0; }}
+.score-value {{ font-size: 13px; font-weight: 700; min-width: 30px; text-align: right; flex-shrink: 0; }}
+.score-track {{ flex: 1; height: 4px; background: #343434; border-radius: 2px; overflow: hidden; }}
+.score-fill {{ height: 100%; border-radius: 2px; transition: width .15s linear; }}
+.score-fill.high {{ background: #69f0ae; }}
+.score-fill.mid {{ background: #ffd54a; }}
+.score-fill.low {{ background: #ff5252; }}
+.roster-title {{ display: flex; justify-content: space-between; align-items: baseline; }}
+.team-score {{ font-size: 15px; font-weight: 700; white-space: nowrap; }}
 .unit-status {{ min-height: 14px; margin-top: 2px; font-size: 11px; color: #ffd54a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
 .vulnerable-card {{ box-shadow: 0 0 10px rgba(255,51,77,.72), inset 0 0 8px rgba(255,51,77,.18); border-color: #ff334d; }}
 .buyback-card {{ box-shadow: 0 0 12px rgba(105,240,174,.9), inset 0 0 9px rgba(105,240,174,.24); border-color: #69f0ae; }}
@@ -461,9 +477,9 @@ function poseAt(track,now,useRaw=false) {{
 function rosterMarkup(camp) {{
   const tracks=unitOrder.map(type=>data.tracks.find(track=>track.key.camp===camp&&track.key.robot_type===type)).filter(Boolean);
   const school=tracks[0]?.key.school||'';
-  const units=tracks.map(track=>`<article id="unit-${{entityId(camp,track.key.robot_id)}}" class="unit-card"><div class="unit-head"><span class="unit-name"><span class="unit-number">${{unitNumber(track.key.robot_id)}}</span><span>${{track.key.robot_type}}</span></span><span id="hp-text-${{entityId(camp,track.key.robot_id)}}">—</span></div><div class="hp-track"><div id="hp-fill-${{entityId(camp,track.key.robot_id)}}" class="hp-fill"></div></div><div id="respawn-${{entityId(camp,track.key.robot_id)}}" class="respawn-row"><span id="respawn-text-${{entityId(camp,track.key.robot_id)}}"></span><div class="respawn-track"><div id="respawn-fill-${{entityId(camp,track.key.robot_id)}}" class="respawn-fill"></div></div></div><div class="unit-stats"><span id="heat-${{entityId(camp,track.key.robot_id)}}">热量 —</span><span id="shots-${{entityId(camp,track.key.robot_id)}}">发弹 —</span></div><div id="status-${{entityId(camp,track.key.robot_id)}}" class="unit-status"></div></article>`).join('');
+  const units=tracks.map(track=>`<article id="unit-${{entityId(camp,track.key.robot_id)}}" class="unit-card"><div class="unit-head"><span class="unit-name"><span class="unit-number">${{unitNumber(track.key.robot_id)}}</span><span>${{track.key.robot_type}}</span></span><span id="hp-text-${{entityId(camp,track.key.robot_id)}}">—</span></div><div class="hp-track"><div id="hp-fill-${{entityId(camp,track.key.robot_id)}}" class="hp-fill"></div></div><div id="respawn-${{entityId(camp,track.key.robot_id)}}" class="respawn-row"><span id="respawn-text-${{entityId(camp,track.key.robot_id)}}"></span><div class="respawn-track"><div id="respawn-fill-${{entityId(camp,track.key.robot_id)}}" class="respawn-fill"></div></div></div><div class="unit-stats"><span id="heat-${{entityId(camp,track.key.robot_id)}}">热量 —</span><span id="shots-${{entityId(camp,track.key.robot_id)}}">发弹 —</span></div><div class="score-row"><span id="kda-${{entityId(camp,track.key.robot_id)}}" class="kda-text">0/0/0</span><span id="dmg-${{entityId(camp,track.key.robot_id)}}" class="dmg-text">0</span><span class="score-label">评分</span><span id="score-text-${{entityId(camp,track.key.robot_id)}}" class="score-value">5.0</span><div class="score-track"><div id="score-fill-${{entityId(camp,track.key.robot_id)}}" class="score-fill mid" style="width:50%"></div></div></div><div id="status-${{entityId(camp,track.key.robot_id)}}" class="unit-status"></div></article>`).join('');
   const objectives=data.objectives.filter(track=>track.key.camp===camp).map(track=>`<article id="objective-card-${{entityId(camp,track.key.robot_id)}}" class="objective-card"><div class="objective-head"><span>${{track.key.robot_type}}</span><span id="objective-hp-${{entityId(camp,track.key.robot_id)}}">—</span></div><div class="hp-track"><div id="objective-fill-${{entityId(camp,track.key.robot_id)}}" class="hp-fill"></div></div><div id="objective-status-${{entityId(camp,track.key.robot_id)}}" class="unit-status"></div></article>`).join('');
-  return `<div class="roster-title"><strong>${{camp}}方</strong><span class="muted">${{school}}</span></div>${{units}}<div class="objectives">${{objectives}}</div>`;
+  return `<div class="roster-title"><div><strong>${{camp}}方</strong><span class="muted">${{school}}</span></div><span id="team-score-${{camp}}" class="team-score">—</span></div>${{units}}<div class="objectives">${{objectives}}</div>`;
 }}
 document.getElementById('redRoster').innerHTML=rosterMarkup('红');
 document.getElementById('blueRoster').innerHTML=rosterMarkup('蓝');
@@ -515,6 +531,7 @@ function updateRosters(now) {{
   data.objectives.forEach(track=>{{ const index=frameIndex(track,now); if(index<0) return; const id=entityId(track.key.camp,track.key.robot_id), health=track.health[index], maxHealth=track.max_health[index]; const ratio=health!==null&&maxHealth>0?Math.max(0,Math.min(1,health/maxHealth)):0; document.getElementById(`objective-hp-${{id}}`).textContent=health!==null&&maxHealth!==null?`${{Math.round(health)}} / ${{Math.round(maxHealth)}}`:'—'; document.getElementById(`objective-fill-${{id}}`).style.width=`${{ratio*100}}%`;
     const status=document.getElementById(`objective-status-${{id}}`); if(track.key.robot_type==='前哨站') status.textContent=outpostRotationState(track.key.camp,now).label; else {{ const armor=baseArmorStates[track.key.camp]; status.textContent=armor&&now>=armor.time?`护甲展开·${{armor.source}}`:'护甲闭合'; }}
     document.getElementById(`objective-card-${{id}}`).classList.toggle('dart-hit-card',data.dart_impacts.some(item=>item.target_robot_id===track.key.robot_id&&item.time<=now&&now<item.time+3)); }});
+  updateScores(now);
 }}
 const teamEconomy={{}}; ['红','蓝'].forEach(camp=>{{ teamEconomy[camp]=data.tracks.find(track=>track.key.camp===camp)||data.objectives.find(track=>track.key.camp===camp); }});
 const maxTotalCoins=Math.max(1,...Object.values(teamEconomy).flatMap(track=>(track?.total_coins||[]).filter(value=>value!==null)));
@@ -524,6 +541,48 @@ function addAssemblyMarkers() {{
 }}
 addAssemblyMarkers();
 function updateAssemblyMarkers(now) {{ const visibleByCluster=new Map(); document.querySelectorAll('.assembly-marker').forEach(marker=>{{ const visible=Number(marker.dataset.time)<=now; marker.style.display=visible?'block':'none'; marker.classList.add('label-hidden'); marker.dataset.label=marker.dataset.baseLabel; if(visible) {{ if(!visibleByCluster.has(marker.dataset.cluster)) visibleByCluster.set(marker.dataset.cluster,[]); visibleByCluster.get(marker.dataset.cluster).push(marker); }} }}); visibleByCluster.forEach(markers=>{{ const camp=markers[0].dataset.camp, ordered=markers.sort((a,b)=>Number(a.dataset.endpoint)-Number(b.dataset.endpoint)), anchor=camp==='红'?ordered[ordered.length-1]:ordered[0]; anchor.dataset.label=ordered.sort((a,b)=>Number(a.dataset.time)-Number(b.dataset.time)).map(marker=>marker.dataset.baseLabel).join(' · '); anchor.classList.remove('label-hidden'); }}); }}
+
+function updateScores(now) {{
+  if (!data.timeseries_scores) return;
+  const camps = ['红','蓝'];
+  camps.forEach(camp => {{
+    const entries = data.timeseries_scores[camp] || [];
+    let teamTotal = 0;
+    entries.forEach(entry => {{
+      const times = entry.times;
+      const scores = entry.score;
+      if (!times || !scores || times.length === 0) return;
+      // Binary search for current time
+      let idx = 0;
+      for (let i = times.length - 1; i >= 0; i--) {{
+        if (times[i] <= now + 0.5) {{ idx = i; break; }}
+      }}
+      const score = scores[idx];
+      const id = entityId(entry.camp, entry.robot_id);
+      const textEl = document.getElementById(`score-text-${{id}}`);
+      const kdaEl = document.getElementById(`kda-${{id}}`);
+      if (kdaEl && entry.kills !== undefined) {{ kdaEl.textContent = `${{entry.kills[idx]}}/${{entry.assists[idx]}}/${{entry.deaths[idx]}}`;
+      const dmgEl = document.getElementById(`dmg-${{id}}`); if (dmgEl && entry.damage !== undefined) {{ dmgEl.textContent = Math.round(entry.damage[idx]); }} }}
+      const fillEl = document.getElementById(`score-fill-${{id}}`);
+      if (textEl) {{
+        textEl.textContent = score.toFixed(1);
+        if (score >= 7.5) textEl.style.color = '#69f0ae';
+        else if (score >= 5.5) textEl.style.color = '#ffd54a';
+        else textEl.style.color = '#ff5252';
+      }}
+      if (fillEl) {{
+        fillEl.style.width = `${{score * 10}}%`;
+        fillEl.classList.remove('high', 'mid', 'low');
+        if (score >= 7.5) fillEl.classList.add('high');
+        else if (score >= 5.5) fillEl.classList.add('mid');
+        else fillEl.classList.add('low');
+      }}
+      teamTotal += score;
+    }});
+    const teamEl = document.getElementById(`team-score-${{camp}}`);
+    if (teamEl) teamEl.textContent = `总分 ${{teamTotal.toFixed(1)}}`;
+  }});
+}}
 function updateEconomy(now) {{
   for(const camp of ['红','蓝']) {{ const track=teamEconomy[camp], index=frameIndex(track,now); if(!track||index<0) continue; const total=track.total_coins[index]??0, remaining=track.remaining_coins[index]??0; const side=camp==='红'?'red':'blue'; document.getElementById(`${{side}}TotalBar`).style.width=`${{Math.min(50,total/maxTotalCoins*50)}}%`; document.getElementById(`${{side}}RemainingBar`).style.width=`${{Math.min(50,remaining/maxTotalCoins*50)}}%`; document.getElementById(`${{side}}TotalLabel`).textContent=`${{camp}} 总经济 ${{Math.round(total)}}`; document.getElementById(`${{side}}RemainingLabel`).textContent=`${{camp}} 现有 ${{Math.round(remaining)}}`; }}
   updateAssemblyMarkers(now);

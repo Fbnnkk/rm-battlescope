@@ -25,6 +25,7 @@ from rmuc_trajectory.pipeline import (
     quality_report,
 )
 from rmuc_trajectory.render import render_gif, render_interactive_html, render_static
+from rmuc_trajectory.scoring import compute_scores, compute_timeseries_scores
 
 
 DEFAULT_DB = ROOT / "rmuc_2026_region_dataset" / "rmuc_2026_region_dataset.sqlite"
@@ -55,6 +56,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--fps", type=int, default=12)
     parser.add_argument("--trail-seconds", type=int, default=20)
     parser.add_argument("--hide-raw", action="store_true", help="静态图不绘制原始轨迹")
+    parser.add_argument("--scores", action="store_true", help="输出评分明细 JSON")
     return parser
 
 
@@ -125,6 +127,26 @@ def main() -> int:
             tracks, paid_revivals, match_end
         )
         dart_impacts, dart_summary = infer_dart_impacts(events, objectives)
+        if args.scores:
+            scores, scoring_summary = compute_scores(
+                match, tracks, events, attacks, buff_intervals
+            )
+            report["scoring"] = scores
+            report["scoring_summary"] = scoring_summary
+            score_path = output_dir / "scores.json"
+            score_path.write_text(
+                json.dumps({"scores": scores, "summary": scoring_summary},
+                           ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            timeseries_scores = compute_timeseries_scores(
+                match, tracks, events, attacks, buff_intervals
+            )
+            ts_path = output_dir / "timeseries_scores.json"
+            ts_path.write_text(
+                json.dumps(timeseries_scores, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
         report["attack_inference"] = {
             **attack_summary,
             "heading_convention": "0° 指向 +x，正角度逆时针",
@@ -175,6 +197,7 @@ def main() -> int:
             respawn_intervals,
             dart_impacts,
             return_url="../../../rmuc_web/index.html",
+            timeseries_scores=timeseries_scores if args.scores else None,
         )
         if args.gif:
             render_gif(

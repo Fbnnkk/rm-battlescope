@@ -174,6 +174,15 @@ def generate_replay(
         tracks, paid_revivals, match_end
     )
     dart_impacts, dart_summary = infer_dart_impacts(events, objectives)
+    from .scoring import compute_scores, compute_timeseries_scores
+
+    progress(65, "计算评分")
+    scores, scoring_summary = compute_scores(
+        match, tracks, events, attacks, buff_intervals
+    )
+    timeseries_scores = compute_timeseries_scores(
+        match, tracks, events, attacks, buff_intervals
+    )
     progress(72, "整理质量报告")
     report = quality_report(match, tracks, parameters)
     report["event_alignment"] = event_alignment_summary(events, tracks)
@@ -182,6 +191,8 @@ def generate_replay(
     report["paid_revival_inference"] = revival_summary
     report["respawn_timeline"] = respawn_summary
     report["dart_inference"] = dart_summary
+    report["scoring"] = scores
+    report["scoring_summary"] = scoring_summary
     report["objective_tracking"] = {
         "track_count": len(objectives),
         "position_source": "规则画布近似标定",
@@ -216,6 +227,8 @@ def generate_replay(
         respawn_intervals,
         dart_impacts,
         return_url="/",
+        scores=scores,
+        timeseries_scores=timeseries_scores,
     )
     progress(100, "解析完成")
     return report["summary"]
