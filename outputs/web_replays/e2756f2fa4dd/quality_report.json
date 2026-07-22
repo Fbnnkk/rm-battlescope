@@ -1,0 +1,1090 @@
+{
+  "match": {
+    "赛区": "东部赛区",
+    "场次号": 27,
+    "赛程": "【东部赛区】第27场",
+    "局号": 2,
+    "game_id": 1779427046868,
+    "web_game_id": 83513,
+    "红方学校": "浙江大学",
+    "蓝方学校": "东南大学",
+    "胜方": "红",
+    "开始时间": "2026-05-22 13:17:26",
+    "时长秒": 420
+  },
+  "field": {
+    "width_m": 28.0,
+    "height_m": 15.0,
+    "coordinate_interpretation": "x: 红方(左)到蓝方(右), y: 画布下到上",
+    "canvas_source_size_px": [
+      1683,
+      938
+    ],
+    "canvas_inner_field_rect_px": [
+      100,
+      69,
+      1576,
+      856
+    ],
+    "canvas_accuracy": "以内侧停机坪/有效场地角点映射28m×15m，仅用于轨迹解释"
+  },
+  "parameters": {
+    "game_id": 1779427046868,
+    "start": null,
+    "end": null,
+    "max_gap": 3,
+    "smooth_window": 3,
+    "max_speed_mps": 8.0,
+    "source": "local_web_app"
+  },
+  "summary": {
+    "track_count": 11,
+    "raw_rows": 4609,
+    "out_of_bounds": 88,
+    "spike_outliers": 0,
+    "interpolated_frames": 21,
+    "residual_jump_count": 1,
+    "event_count": 2595,
+    "events_with_subject_robot": 2576,
+    "events_positioned_on_track": 2441,
+    "events_static_subject": 135,
+    "events_unmatched_robot": 0,
+    "events_missing_clean_position": 0,
+    "projectile_hit_count": 386,
+    "projectile_hit_window_count": 178,
+    "inferred_attack_count": 175,
+    "high_confidence": 111,
+    "medium_confidence": 17,
+    "low_confidence": 47,
+    "ambiguous": 40,
+    "unresolved": 3,
+    "continuous_attack_sequences": 35,
+    "max_continuous_attack_count": 15,
+    "dart_hit_count": 0,
+    "inferred_paid_revival_count": 1,
+    "respawn_interval_count": 22,
+    "objective_track_count": 4,
+    "deployed_hero_lob_count": 0
+  },
+  "tracks": [
+    {
+      "label": "红方 英雄 #1",
+      "raw_rows": 419,
+      "frame_count": 419,
+      "missing_frames": 0,
+      "duplicate_rows": 0,
+      "null_coordinates": 0,
+      "out_of_bounds": 1,
+      "spike_outliers": 0,
+      "interpolated_frames": 1,
+      "remaining_frames": 419,
+      "residual_jump_count": 0,
+      "raw_path_m": 146.684,
+      "clean_path_m": 128.415,
+      "max_raw_speed_mps": 2.483,
+      "max_clean_speed_mps": 2.189
+    },
+    {
+      "label": "红方 工程 #2",
+      "raw_rows": 419,
+      "frame_count": 419,
+      "missing_frames": 0,
+      "duplicate_rows": 0,
+      "null_coordinates": 0,
+      "out_of_bounds": 5,
+      "spike_outliers": 0,
+      "interpolated_frames": 1,
+      "remaining_frames": 415,
+      "residual_jump_count": 0,
+      "raw_path_m": 229.52,
+      "clean_path_m": 137.351,
+      "max_raw_speed_mps": 23.23,
+      "max_clean_speed_mps": 1.826
+    },
+    {
+      "label": "红方 步兵3 #3",
+      "raw_rows": 419,
+      "frame_count": 419,
+      "missing_frames": 0,
+      "duplicate_rows": 0,
+      "null_coordinates": 0,
+      "out_of_bounds": 0,
+      "spike_outliers": 0,
+      "interpolated_frames": 0,
+      "remaining_frames": 419,
+      "residual_jump_count": 0,
+      "raw_path_m": 229.437,
+      "clean_path_m": 193.212,
+      "max_raw_speed_mps": 3.871,
+      "max_clean_speed_mps": 1.722
+    },
+    {
+      "label": "红方 步兵4 #4",
+      "raw_rows": 419,
+      "frame_count": 419,
+      "missing_frames": 0,
+      "duplicate_rows": 0,
+      "null_coordinates": 0,
+      "out_of_bounds": 0,
+      "spike_outliers": 0,
+      "interpolated_frames": 0,
+      "remaining_frames": 419,
+      "residual_jump_count": 0,
+      "raw_path_m": 274.776,
+      "clean_path_m": 221.019,
+      "max_raw_speed_mps": 2.951,
+      "max_clean_speed_mps": 2.314
+    },
+    {
+      "label": "红方 空中 #6",
+      "raw_rows": 419,
+      "frame_count": 419,
+      "missing_frames": 0,
+      "duplicate_rows": 0,
+      "null_coordinates": 0,
+      "out_of_bounds": 0,
+      "spike_outliers": 0,
+      "interpolated_frames": 0,
+      "remaining_frames": 419,
+      "residual_jump_count": 0,
+      "raw_path_m": 81.342,
+      "clean_path_m": 56.608,
+      "max_raw_speed_mps": 3.066,
+      "max_clean_speed_mps": 2.531
+    },
+    {
+      "label": "蓝方 英雄 #101",
+      "raw_rows": 419,
+      "frame_count": 419,
+      "missing_frames": 0,
+      "duplicate_rows": 0,
+      "null_coordinates": 0,
+      "out_of_bounds": 0,
+      "spike_outliers": 0,
+      "interpolated_frames": 0,
+      "remaining_frames": 419,
+      "residual_jump_count": 1,
+      "raw_path_m": 121.866,
+      "clean_path_m": 112.171,
+      "max_raw_speed_mps": 24.454,
+      "max_clean_speed_mps": 12.227
+    },
+    {
+      "label": "蓝方 工程 #102",
+      "raw_rows": 419,
+      "frame_count": 419,
+      "missing_frames": 0,
+      "duplicate_rows": 0,
+      "null_coordinates": 0,
+      "out_of_bounds": 0,
+      "spike_outliers": 0,
+      "interpolated_frames": 0,
+      "remaining_frames": 419,
+      "residual_jump_count": 0,
+      "raw_path_m": 103.451,
+      "clean_path_m": 69.393,
+      "max_raw_speed_mps": 3.048,
+      "max_clean_speed_mps": 1.241
+    },
+    {
+      "label": "蓝方 步兵3 #103",
+      "raw_rows": 419,
+      "frame_count": 419,
+      "missing_frames": 0,
+      "duplicate_rows": 0,
+      "null_coordinates": 0,
+      "out_of_bounds": 52,
+      "spike_outliers": 0,
+      "interpolated_frames": 11,
+      "remaining_frames": 378,
+      "residual_jump_count": 0,
+      "raw_path_m": 186.137,
+      "clean_path_m": 156.9,
+      "max_raw_speed_mps": 3.082,
+      "max_clean_speed_mps": 2.294
+    },
+    {
+      "label": "蓝方 步兵4 #104",
+      "raw_rows": 419,
+      "frame_count": 419,
+      "missing_frames": 0,
+      "duplicate_rows": 0,
+      "null_coordinates": 0,
+      "out_of_bounds": 20,
+      "spike_outliers": 0,
+      "interpolated_frames": 6,
+      "remaining_frames": 405,
+      "residual_jump_count": 0,
+      "raw_path_m": 382.792,
+      "clean_path_m": 228.863,
+      "max_raw_speed_mps": 19.727,
+      "max_clean_speed_mps": 4.415
+    },
+    {
+      "label": "蓝方 空中 #106",
+      "raw_rows": 419,
+      "frame_count": 419,
+      "missing_frames": 0,
+      "duplicate_rows": 0,
+      "null_coordinates": 0,
+      "out_of_bounds": 10,
+      "spike_outliers": 0,
+      "interpolated_frames": 2,
+      "remaining_frames": 411,
+      "residual_jump_count": 0,
+      "raw_path_m": 128.422,
+      "clean_path_m": 59.303,
+      "max_raw_speed_mps": 11.297,
+      "max_clean_speed_mps": 1.299
+    },
+    {
+      "label": "蓝方 哨兵 #107",
+      "raw_rows": 419,
+      "frame_count": 419,
+      "missing_frames": 0,
+      "duplicate_rows": 0,
+      "null_coordinates": 0,
+      "out_of_bounds": 0,
+      "spike_outliers": 0,
+      "interpolated_frames": 0,
+      "remaining_frames": 419,
+      "residual_jump_count": 0,
+      "raw_path_m": 61.26,
+      "clean_path_m": 37.99,
+      "max_raw_speed_mps": 1.899,
+      "max_clean_speed_mps": 1.629
+    }
+  ],
+  "event_alignment": {
+    "event_count": 2595,
+    "events_with_subject_robot": 2576,
+    "events_positioned_on_track": 2441,
+    "events_static_subject": 135,
+    "events_unmatched_robot": 0,
+    "events_missing_clean_position": 0
+  },
+  "attack_inference": {
+    "projectile_hit_count": 386,
+    "projectile_hit_window_count": 178,
+    "inferred_attack_count": 175,
+    "high_confidence": 111,
+    "medium_confidence": 17,
+    "low_confidence": 47,
+    "ambiguous": 40,
+    "unresolved": 3,
+    "continuous_attack_sequences": 35,
+    "max_continuous_attack_count": 15
+  },
+  "buff_timeline": {
+    "interval_count": 17,
+    "terrain_death_truncations": 2,
+    "unknown_categories": [],
+    "has_dataset_end_flag": false,
+    "rule_version": "RoboMaster 2026 比赛规则手册 V2.1.0",
+    "regional_version_warning": "区域赛数据早于V2.1.0，台阶跨越按高地类30秒近似映射"
+  },
+  "paid_revival_inference": {
+    "inferred_paid_revival_count": 1,
+    "high_confidence": 1,
+    "medium_confidence": 0,
+    "has_native_buyback_event": false,
+    "method": "0血量→至少75%血量，并在±1秒窗口检测到队伍剩余金币下降至少50",
+    "warning": "立即复活由遥测识别，不是数据库原生事件"
+  },
+  "respawn_timeline": {
+    "death_interval_count": 22,
+    "timer_respawn_count": 19,
+    "paid_respawn_count": 1,
+    "unrevived_count": 2,
+    "rule": "required=round(10+death_elapsed/10+20*prior_paid_revivals)",
+    "warning": "数据库无原生复活进度；已完成区间按观测复活时刻回放，未完成区间按基础1点/秒估算"
+  },
+  "dart_inference": {
+    "dart_hit_count": 0,
+    "identified_target_profile_count": 0,
+    "unknown_target_profile_count": 0,
+    "mapping": "基地伤害200/300/625/1000对应固定/随机固定/随机移动/末端移动；前哨站为固定靶",
+    "blind_timing": "固定/随机固定靶按10/5/3/2秒刷新且不缩短现有遮挡；随机移动/末端移动靶每次10秒叠加",
+    "warning": "增益点失效30秒需飞镖引导灯亮起，数据库无该标志，因此仅展示为条件窗口"
+  },
+  "scoring": [
+    {
+      "camp": "红",
+      "robot_id": 1,
+      "robot_type": "英雄",
+      "school": "浙江大学",
+      "total_score": 4.18,
+      "components": {
+        "kills": {
+          "value": 0,
+          "score": 0.0
+        },
+        "assists": {
+          "value": 0,
+          "score": 0.0
+        },
+        "deaths": {
+          "value": 2,
+          "score": -1.1
+        },
+        "damage_to_robots": {
+          "value": 0.0,
+          "score": 0.0
+        },
+        "damage_to_structures": {
+          "value": 400.0,
+          "score": 0.8
+        },
+        "damage_received": {
+          "value": 280.0,
+          "score": -0.14
+        },
+        "terrain_bumps": {
+          "value": 0,
+          "score": 0.0
+        },
+        "terrain_steps": {
+          "value": 2,
+          "score": 0.04
+        },
+        "terrain_highland": {
+          "value": 0.0,
+          "score": 0.0
+        },
+        "win_bonus": {
+          "value": true,
+          "score": 0.3
+        },
+        "first_blood": {
+          "value": false,
+          "score": 0.0
+        },
+        "afk_penalty": {
+          "value": false,
+          "score": 0.0
+        }
+      },
+      "hero": {
+        "42mm_shots": {
+          "value": 8,
+          "score": 0.24
+        },
+        "gold_spent": {
+          "value": 1929.0,
+          "score": -0.9645
+        }
+      }
+    },
+    {
+      "camp": "红",
+      "robot_id": 2,
+      "robot_type": "工程",
+      "school": "浙江大学",
+      "total_score": 6.55,
+      "components": {
+        "kills": {
+          "value": 0,
+          "score": 0.0
+        },
+        "assists": {
+          "value": 0,
+          "score": 0.0
+        },
+        "deaths": {
+          "value": 0,
+          "score": -0.0
+        },
+        "damage_to_robots": {
+          "value": 0.0,
+          "score": 0.0
+        },
+        "damage_to_structures": {
+          "value": 0.0,
+          "score": 0.0
+        },
+        "damage_received": {
+          "value": 10.0,
+          "score": -0.005
+        },
+        "terrain_bumps": {
+          "value": 0,
+          "score": 0.0
+        },
+        "terrain_steps": {
+          "value": 0,
+          "score": 0.0
+        },
+        "terrain_highland": {
+          "value": 0.0,
+          "score": 0.0
+        },
+        "win_bonus": {
+          "value": true,
+          "score": 0.3
+        },
+        "first_blood": {
+          "value": false,
+          "score": 0.0
+        },
+        "afk_penalty": {
+          "value": false,
+          "score": 0.0
+        }
+      },
+      "engineer": {
+        "survival_duration": {
+          "value": 419.0,
+          "score": 1.257
+        },
+        "terrain_multiplier": 1.3
+      }
+    },
+    {
+      "camp": "红",
+      "robot_id": 3,
+      "robot_type": "步兵3",
+      "school": "浙江大学",
+      "total_score": 9.28,
+      "components": {
+        "kills": {
+          "value": 5,
+          "score": 2.5
+        },
+        "assists": {
+          "value": 1,
+          "score": 0.25
+        },
+        "deaths": {
+          "value": 0,
+          "score": -0.0
+        },
+        "damage_to_robots": {
+          "value": 361.0,
+          "score": 0.361
+        },
+        "damage_to_structures": {
+          "value": 0.0,
+          "score": 0.0
+        },
+        "damage_received": {
+          "value": 145.0,
+          "score": -0.0725
+        },
+        "terrain_bumps": {
+          "value": 0,
+          "score": 0.0
+        },
+        "terrain_steps": {
+          "value": 0,
+          "score": 0.0
+        },
+        "terrain_highland": {
+          "value": 60.0,
+          "score": 0.24
+        },
+        "win_bonus": {
+          "value": true,
+          "score": 0.3
+        },
+        "first_blood": {
+          "value": false,
+          "score": 0.0
+        },
+        "afk_penalty": {
+          "value": false,
+          "score": 0.0
+        }
+      },
+      "infantry": {
+        "hero_kills": {
+          "value": 1,
+          "score": 0.3
+        },
+        "sentry_kills": {
+          "value": 0,
+          "score": 0.0
+        },
+        "max_kill_streak": {
+          "value": 5,
+          "bonus_kills": 4,
+          "score": 0.4
+        }
+      }
+    },
+    {
+      "camp": "红",
+      "robot_id": 4,
+      "robot_type": "步兵4",
+      "school": "浙江大学",
+      "total_score": 4.43,
+      "components": {
+        "kills": {
+          "value": 0,
+          "score": 0.0
+        },
+        "assists": {
+          "value": 0,
+          "score": 0.0
+        },
+        "deaths": {
+          "value": 2,
+          "score": -1.0
+        },
+        "damage_to_robots": {
+          "value": 85.0,
+          "score": 0.085
+        },
+        "damage_to_structures": {
+          "value": 0.0,
+          "score": 0.0
+        },
+        "damage_received": {
+          "value": 462.0,
+          "score": -0.231
+        },
+        "terrain_bumps": {
+          "value": 0,
+          "score": 0.0
+        },
+        "terrain_steps": {
+          "value": 2,
+          "score": 0.04
+        },
+        "terrain_highland": {
+          "value": 60.0,
+          "score": 0.24
+        },
+        "win_bonus": {
+          "value": true,
+          "score": 0.3
+        },
+        "first_blood": {
+          "value": false,
+          "score": 0.0
+        },
+        "afk_penalty": {
+          "value": false,
+          "score": 0.0
+        }
+      },
+      "infantry": {
+        "hero_kills": {
+          "value": 0,
+          "score": 0.0
+        },
+        "sentry_kills": {
+          "value": 0,
+          "score": 0.0
+        },
+        "max_kill_streak": {
+          "value": 0,
+          "bonus_kills": 0,
+          "score": 0.0
+        }
+      }
+    },
+    {
+      "camp": "红",
+      "robot_id": 6,
+      "robot_type": "空中",
+      "school": "浙江大学",
+      "total_score": 10.0,
+      "components": {
+        "kills": {
+          "value": 13,
+          "score": 7.15
+        },
+        "assists": {
+          "value": 1,
+          "score": 0.25
+        },
+        "deaths": {
+          "value": 0,
+          "score": -0.0
+        },
+        "damage_to_robots": {
+          "value": 807.0,
+          "score": 0.807
+        },
+        "damage_to_structures": {
+          "value": 360.0,
+          "score": 0.72
+        },
+        "damage_received": {
+          "value": 0.0,
+          "score": -0.0
+        },
+        "terrain_bumps": {
+          "value": 0,
+          "score": 0.0
+        },
+        "terrain_steps": {
+          "value": 0,
+          "score": 0.0
+        },
+        "terrain_highland": {
+          "value": 0.0,
+          "score": 0.0
+        },
+        "win_bonus": {
+          "value": true,
+          "score": 0.3
+        },
+        "first_blood": {
+          "value": true,
+          "score": 0.5
+        },
+        "afk_penalty": {
+          "value": false,
+          "score": 0.0
+        }
+      },
+      "aerial": {
+        "active_time": 418.0,
+        "jammed_time": 0.0,
+        "output_efficiency_dps": 2.792,
+        "efficiency_score": 4.1878,
+        "enemy_half_time": {
+          "value": 364.0,
+          "score": 1.456
+        }
+      }
+    },
+    {
+      "camp": "蓝",
+      "robot_id": 101,
+      "robot_type": "英雄",
+      "school": "东南大学",
+      "total_score": 2.09,
+      "components": {
+        "kills": {
+          "value": 0,
+          "score": 0.0
+        },
+        "assists": {
+          "value": 0,
+          "score": 0.0
+        },
+        "deaths": {
+          "value": 2,
+          "score": -1.1
+        },
+        "damage_to_robots": {
+          "value": 0.0,
+          "score": 0.0
+        },
+        "damage_to_structures": {
+          "value": 0.0,
+          "score": 0.0
+        },
+        "damage_received": {
+          "value": 145.0,
+          "score": -0.0725
+        },
+        "terrain_bumps": {
+          "value": 0,
+          "score": 0.0
+        },
+        "terrain_steps": {
+          "value": 0,
+          "score": 0.0
+        },
+        "terrain_highland": {
+          "value": 0.0,
+          "score": 0.0
+        },
+        "win_bonus": {
+          "value": false,
+          "score": 0.0
+        },
+        "first_blood": {
+          "value": false,
+          "score": 0.0
+        },
+        "afk_penalty": {
+          "value": true,
+          "score": -1.5
+        }
+      },
+      "hero": {
+        "42mm_shots": {
+          "value": 3,
+          "score": 0.09
+        },
+        "gold_spent": {
+          "value": 645.0,
+          "score": -0.3225
+        }
+      }
+    },
+    {
+      "camp": "蓝",
+      "robot_id": 102,
+      "robot_type": "工程",
+      "school": "东南大学",
+      "total_score": 1.76,
+      "components": {
+        "kills": {
+          "value": 0,
+          "score": 0.0
+        },
+        "assists": {
+          "value": 0,
+          "score": 0.0
+        },
+        "deaths": {
+          "value": 4,
+          "score": -2.4
+        },
+        "damage_to_robots": {
+          "value": 0.0,
+          "score": 0.0
+        },
+        "damage_to_structures": {
+          "value": 0.0,
+          "score": 0.0
+        },
+        "damage_received": {
+          "value": 140.0,
+          "score": -0.07
+        },
+        "terrain_bumps": {
+          "value": 0,
+          "score": 0.0
+        },
+        "terrain_steps": {
+          "value": 0,
+          "score": 0.0
+        },
+        "terrain_highland": {
+          "value": 0.0,
+          "score": 0.0
+        },
+        "win_bonus": {
+          "value": false,
+          "score": 0.0
+        },
+        "first_blood": {
+          "value": false,
+          "score": 0.0
+        },
+        "afk_penalty": {
+          "value": true,
+          "score": -1.5
+        }
+      },
+      "engineer": {
+        "survival_duration": {
+          "value": 242.0,
+          "score": 0.726
+        },
+        "terrain_multiplier": 1.3
+      }
+    },
+    {
+      "camp": "蓝",
+      "robot_id": 103,
+      "robot_type": "步兵3",
+      "school": "东南大学",
+      "total_score": 4.02,
+      "components": {
+        "kills": {
+          "value": 0,
+          "score": 0.0
+        },
+        "assists": {
+          "value": 1,
+          "score": 0.25
+        },
+        "deaths": {
+          "value": 3,
+          "score": -1.5
+        },
+        "damage_to_robots": {
+          "value": 298.0,
+          "score": 0.298
+        },
+        "damage_to_structures": {
+          "value": 20.0,
+          "score": 0.04
+        },
+        "damage_received": {
+          "value": 385.0,
+          "score": -0.1925
+        },
+        "terrain_bumps": {
+          "value": 0,
+          "score": 0.0
+        },
+        "terrain_steps": {
+          "value": 0,
+          "score": 0.0
+        },
+        "terrain_highland": {
+          "value": 30.0,
+          "score": 0.12
+        },
+        "win_bonus": {
+          "value": false,
+          "score": 0.0
+        },
+        "first_blood": {
+          "value": false,
+          "score": 0.0
+        },
+        "afk_penalty": {
+          "value": false,
+          "score": 0.0
+        }
+      },
+      "infantry": {
+        "hero_kills": {
+          "value": 0,
+          "score": 0.0
+        },
+        "sentry_kills": {
+          "value": 0,
+          "score": 0.0
+        },
+        "max_kill_streak": {
+          "value": 0,
+          "bonus_kills": 0,
+          "score": 0.0
+        }
+      }
+    },
+    {
+      "camp": "蓝",
+      "robot_id": 104,
+      "robot_type": "步兵4",
+      "school": "东南大学",
+      "total_score": 3.87,
+      "components": {
+        "kills": {
+          "value": 1,
+          "score": 0.5
+        },
+        "assists": {
+          "value": 1,
+          "score": 0.25
+        },
+        "deaths": {
+          "value": 4,
+          "score": -2.0
+        },
+        "damage_to_robots": {
+          "value": 215.0,
+          "score": 0.215
+        },
+        "damage_to_structures": {
+          "value": 0.0,
+          "score": 0.0
+        },
+        "damage_received": {
+          "value": 421.0,
+          "score": -0.2105
+        },
+        "terrain_bumps": {
+          "value": 2,
+          "score": 0.12
+        },
+        "terrain_steps": {
+          "value": 0,
+          "score": 0.0
+        },
+        "terrain_highland": {
+          "value": 0.0,
+          "score": 0.0
+        },
+        "win_bonus": {
+          "value": false,
+          "score": 0.0
+        },
+        "first_blood": {
+          "value": false,
+          "score": 0.0
+        },
+        "afk_penalty": {
+          "value": false,
+          "score": 0.0
+        }
+      },
+      "infantry": {
+        "hero_kills": {
+          "value": 0,
+          "score": 0.0
+        },
+        "sentry_kills": {
+          "value": 0,
+          "score": 0.0
+        },
+        "max_kill_streak": {
+          "value": 1,
+          "bonus_kills": 0,
+          "score": 0.0
+        }
+      }
+    },
+    {
+      "camp": "蓝",
+      "robot_id": 107,
+      "robot_type": "哨兵",
+      "school": "东南大学",
+      "total_score": 1.79,
+      "components": {
+        "kills": {
+          "value": 0,
+          "score": 0.0
+        },
+        "assists": {
+          "value": 0,
+          "score": 0.0
+        },
+        "deaths": {
+          "value": 5,
+          "score": -3.5
+        },
+        "damage_to_robots": {
+          "value": 57.0,
+          "score": 0.057
+        },
+        "damage_to_structures": {
+          "value": 0.0,
+          "score": 0.0
+        },
+        "damage_received": {
+          "value": 162.0,
+          "score": -0.081
+        },
+        "terrain_bumps": {
+          "value": 0,
+          "score": 0.0
+        },
+        "terrain_steps": {
+          "value": 0,
+          "score": 0.0
+        },
+        "terrain_highland": {
+          "value": 0.0,
+          "score": 0.0
+        },
+        "win_bonus": {
+          "value": false,
+          "score": 0.0
+        },
+        "first_blood": {
+          "value": false,
+          "score": 0.0
+        },
+        "afk_penalty": {
+          "value": false,
+          "score": 0.0
+        }
+      },
+      "sentry": {
+        "survival_duration": {
+          "value": 259.0,
+          "score": 0.3108
+        }
+      }
+    },
+    {
+      "camp": "蓝",
+      "robot_id": 106,
+      "robot_type": "空中",
+      "school": "东南大学",
+      "total_score": 10.0,
+      "components": {
+        "kills": {
+          "value": 3,
+          "score": 1.65
+        },
+        "assists": {
+          "value": 0,
+          "score": 0.0
+        },
+        "deaths": {
+          "value": 0,
+          "score": -0.0
+        },
+        "damage_to_robots": {
+          "value": 327.0,
+          "score": 0.327
+        },
+        "damage_to_structures": {
+          "value": 835.0,
+          "score": 1.67
+        },
+        "damage_received": {
+          "value": 0.0,
+          "score": -0.0
+        },
+        "terrain_bumps": {
+          "value": 0,
+          "score": 0.0
+        },
+        "terrain_steps": {
+          "value": 0,
+          "score": 0.0
+        },
+        "terrain_highland": {
+          "value": 0.0,
+          "score": 0.0
+        },
+        "win_bonus": {
+          "value": false,
+          "score": 0.0
+        },
+        "first_blood": {
+          "value": false,
+          "score": 0.0
+        },
+        "afk_penalty": {
+          "value": false,
+          "score": 0.0
+        }
+      },
+      "aerial": {
+        "active_time": 418.0,
+        "jammed_time": 0.0,
+        "output_efficiency_dps": 2.78,
+        "efficiency_score": 4.1699,
+        "enemy_half_time": {
+          "value": 134.0,
+          "score": 0.536
+        }
+      }
+    }
+  ],
+  "scoring_summary": {
+    "robot_count": 11,
+    "min_score": 1.76,
+    "max_score": 10.0,
+    "mean_score": 5.27,
+    "kill_count": 22,
+    "death_count": 22,
+    "assist_count": 4,
+    "first_blood_time": 67.0,
+    "first_blood_robot": {
+      "camp": "红",
+      "robot_id": 6,
+      "robot_type": "空中"
+    },
+    "afk_robot_count": 2,
+    "score_range": [
+      0.0,
+      10.0
+    ],
+    "rule_version": "RMUC 2026 V2.1 scoring",
+    "notes": [
+      "Gold spending estimated from team-level coin data, attributed to hero.",
+      "Damage scoring covers projectile damage (17mm/42mm) from AttackInference only.",
+      "Radar jam duration assumed 30s per event per RMUC V2.1 rules.",
+      "Deaths without attributed attacks still incur the death penalty."
+    ]
+  },
+  "objective_tracking": {
+    "track_count": 4,
+    "position_source": "规则画布近似标定"
+  }
+}
