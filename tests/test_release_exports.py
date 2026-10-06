@@ -32,7 +32,7 @@ class ReleaseExportTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             target = root/'external'/'reports'
-            self.assertEqual(get_output_root(root, {'BATTLESCOPE_OUTPUT_DIR':str(target)}),target)
+            self.assertEqual(get_output_root(root, {'BATTLESCOPE_OUTPUT_DIR':str(target)}),target.resolve())
 
     def test_invalid_local_setting_fails_instead_of_falling_back(self):
         with tempfile.TemporaryDirectory() as directory:
