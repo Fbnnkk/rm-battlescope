@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Tests for the scoring module."""
+"""Regression tests for the explicitly retained legacy v2 scoring rules."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import unittest
 from rmuc_trajectory.buffs import BuffInterval
 from rmuc_trajectory.combat import AttackInference
 from rmuc_trajectory.pipeline import TrackKey, clean_track
-from rmuc_trajectory.scoring import (
+from rmuc_trajectory.legacy_scoring import (
     MIN_SCORE,
     MAX_SCORE,
     SCORE_AFK_PENALTY,

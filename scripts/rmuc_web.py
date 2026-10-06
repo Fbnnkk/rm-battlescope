@@ -13,6 +13,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from rmuc_trajectory.webapp import create_server
+from rmuc_trajectory.paths import DEFAULT_OUTPUT_ROOT
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -20,12 +21,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--db",
         type=Path,
-        default=ROOT / "rmuc_2026_region_dataset" / "rmuc_2026_region_dataset.sqlite",
+        default=ROOT / "dataset" / "rmuc_2026_region_dataset.sqlite",
     )
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument(
-        "--output-dir", type=Path, default=ROOT / "outputs" / "web_replays"
+        "--output-dir", type=Path, default=DEFAULT_OUTPUT_ROOT / "web_replays"
     )
     return parser
 

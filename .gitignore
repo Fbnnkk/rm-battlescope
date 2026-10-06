@@ -9,10 +9,11 @@ __pycache__/
 
 # Explicit query exports
 *.csv
+!/docs/replays/*/scores.csv
 *.jsonl
 
 # Downloaded datasets and local databases
-rmuc_2026_region_dataset/
+dataset/
 *.sqlite
 *.sqlite3
 *.db
@@ -25,3 +26,40 @@ rmuc_2026_region_dataset/
 *.sqlite-shm
 *.sqlite-wal
 *.sqlite-journal
+
+# Generated reports, private workspace files, datasets and training artifacts
+/outputs/
+/work/
+/data/
+/rm_runs/
+/models/
+/viz/figures/
+/viz/replays/
+/.battlescope.local.json
+/.venv/
+/.env
+/.env.*
+*.pt
+*.pth
+*.npz
+
+# Local research code is outside the reviewed replay release
+/rm_rl/
+/viz/
+/README_offline_rl.md
+/configs/*_bc*.yaml
+/configs/*_dt*.yaml
+/configs/*_iql*.yaml
+/scripts/01_build_sentry_dataset.sh
+/scripts/02_train_sentry_iql.sh
+/scripts/03_train_sentry_dt.sh
+/scripts/analyze_team_agreement.py
+/scripts/collect_results.sh
+/scripts/export_policy.py
+/scripts/run_all.sh
+/scripts/win_build.ps1
+/scripts/win_train.ps1
+/docs/logo.jpg
+
+# Personal session shortcuts
+/恢复上下文.bat

@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import json
+import hashlib
+import math
+import re
+import sqlite3
 import threading
 import traceback
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -27,6 +31,8 @@ from .pipeline import (
 )
 from .render import render_interactive_html
 from .revival import infer_paid_revivals, infer_respawn_intervals
+from .review import build_review
+from .exports import write_scores_csv
 
 
 ProgressCallback = Callable[[int, str], None]
@@ -89,9 +95,12 @@ class ReplayRequest:
     max_gap: int = 3
     smooth_window: int = 3
     max_speed: float = 8.0
+    min_confidence: str = "low"
 
 
 def validate_job_payload(payload: dict[str, Any]) -> ReplayRequest:
+    if not isinstance(payload, dict):
+        raise ValueError("请求必须是 JSON 对象")
     try:
         game_id = int(payload["game_id"])
         start = float(payload["start"]) if payload.get("start") not in (None, "") else None
@@ -99,10 +108,18 @@ def validate_job_payload(payload: dict[str, Any]) -> ReplayRequest:
         max_gap = int(payload.get("max_gap", 3))
         smooth_window = int(payload.get("smooth_window", 3))
         max_speed = float(payload.get("max_speed", 8.0))
-    except (KeyError, TypeError, ValueError) as error:
+    except (KeyError, TypeError, ValueError, OverflowError) as error:
         raise ValueError("参数格式不正确") from error
     if game_id <= 0:
         raise ValueError("game_id 必须为正整数")
+    if isinstance(payload["game_id"], bool) or str(payload["game_id"]).strip() != str(game_id):
+        raise ValueError("game_id 必须为正整数")
+    if any(not math.isfinite(v) for v in (start, end, max_speed) if v is not None):
+        raise ValueError("时间和速度必须为有限数值")
+    for key, value in (("max_gap", max_gap), ("smooth_window", smooth_window)):
+        raw = payload.get(key, value)
+        if isinstance(raw, bool) or float(raw) != value:
+            raise ValueError("插值缺帧数和平滑窗口必须为整数")
     if start is not None and start < 0:
         raise ValueError("开始时间不能小于0")
     if end is not None and end < 0:
@@ -115,7 +132,10 @@ def validate_job_payload(payload: dict[str, Any]) -> ReplayRequest:
         raise ValueError("平滑窗口必须是1到9之间的奇数")
     if max_speed <= 0 or max_speed > 30:
         raise ValueError("速度阈值必须在0到30m/s之间")
-    return ReplayRequest(game_id, start, end, max_gap, smooth_window, max_speed)
+    confidence = payload.get("min_confidence", "low")
+    if confidence not in {"high", "medium", "low"}:
+        raise ValueError("评分证据必须为 high、medium 或 low")
+    return ReplayRequest(game_id, start, end, max_gap, smooth_window, max_speed, confidence)
 def generate_replay(
     root: Path,
     database: Path,
@@ -134,6 +154,7 @@ def generate_replay(
         "smooth_window": request.smooth_window,
         "max_speed_mps": request.max_speed,
         "source": "local_web_app",
+        "min_confidence": request.min_confidence,
     }
     progress(5, "读取车辆连续帧")
     match, tracks = load_and_clean_tracks(
@@ -161,6 +182,10 @@ def generate_replay(
     events = load_match_events(
         database, request.game_id, start=request.start, end=request.end
     )
+    if not any(len(t.times) for t in tracks):
+        raise ValueError("所选时间窗没有可用车辆遥测，请扩大时间范围")
+    match["_is_partial"] = bool((request.start or 0) > 0 or
+                                (request.end is not None and request.end < float(match.get("时长秒") or 420)))
     canvas = default_canvas(root)
     progress(44, "推断攻击关系")
     attacks, attack_summary = infer_attacks(events, tracks + objectives)
@@ -174,15 +199,17 @@ def generate_replay(
         tracks, paid_revivals, match_end
     )
     dart_impacts, dart_summary = infer_dart_impacts(events, objectives)
-    from .scoring import compute_scores, compute_timeseries_scores
+    from .scoring import compute_score_report
 
     progress(65, "计算评分")
-    scores, scoring_summary = compute_scores(
-        match, tracks, events, attacks, buff_intervals
+    scores, scoring_summary, timeseries_scores = compute_score_report(
+        match, tracks + objectives, events, attacks, buff_intervals, min_confidence=request.min_confidence
     )
-    timeseries_scores = compute_timeseries_scores(
-        match, tracks, events, attacks, buff_intervals
-    )
+    review = build_review(match, tracks + objectives, events, scores, timeseries_scores, scoring_summary)
+    for name, payload in (("scores.json", {"scores": scores, "summary": scoring_summary}),
+                          ("timeseries_scores.json", timeseries_scores), ("review.json", review)):
+        (output_dir / name).write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    write_scores_csv(output_dir / "scores.csv", scores)
     progress(72, "整理质量报告")
     report = quality_report(match, tracks, parameters)
     report["event_alignment"] = event_alignment_summary(events, tracks)
@@ -227,8 +254,10 @@ def generate_replay(
         respawn_intervals,
         dart_impacts,
         return_url="/",
+        backend={"export_url": f"/api/replays/{output_dir.name}/exports"},
         scores=scores,
         timeseries_scores=timeseries_scores,
+        review=review,
     )
     progress(100, "解析完成")
     return report["summary"]
@@ -245,11 +274,12 @@ class JobState:
     replay_url: str | None = None
     error: str | None = None
     summary: dict[str, Any] | None = None
+    cache_key: str = ""
     lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     def update(self, progress: int, stage: str) -> None:
         with self.lock:
-            self.status = "running" if progress < 100 else "done"
+            self.status = "running"
             self.progress = progress
             self.stage = stage
 
@@ -263,6 +293,7 @@ class JobState:
                 "replay_url": self.replay_url,
                 "error": self.error,
                 "summary": self.summary,
+                "game_id": self.request.game_id,
             }
 
 
@@ -275,21 +306,64 @@ class ReplayApplication:
         self.jobs: dict[str, JobState] = {}
         self.jobs_lock = threading.Lock()
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="rmuc-replay")
+        self.cache_keys: dict[str, str] = {}
+        self.output_root.mkdir(parents=True, exist_ok=True)
+        # Only manifests belonging to this application can expose replay files.
+        for path in self.output_root.glob("*/manifest.json"):
+            try:
+                saved = json.loads(path.read_text(encoding="utf-8"))
+                if not re.fullmatch(r"[a-f0-9]{12}", path.parent.name) or not (path.parent / "trajectory.html").is_file():
+                    continue
+                request = validate_job_payload(saved["request"])
+                state = JobState(path.parent.name, request, path.parent, status="done", progress=100,
+                                 stage="已完成", replay_url=f"/replays/{path.parent.name}/trajectory.html", summary=saved["summary"], cache_key=saved["cache_key"])
+                self.jobs[state.job_id] = state
+                self.cache_keys[saved["cache_key"]] = state.job_id
+            except (ValueError, KeyError, TypeError, OSError):
+                continue
+
+    def cache_key(self, request: ReplayRequest) -> str:
+        stamp = self.database.stat()
+        source = hashlib.sha256()
+        for path in (sorted((self.root / "rmuc_trajectory").glob("*.py"))
+                     + sorted((self.root / "rmuc_web").glob("replay.*"))
+                     + sorted((self.root / "configs").glob("scoring_*.json"))):
+            source.update(path.read_bytes())
+        body = {"request": asdict(request), "database": str(self.database), "size": stamp.st_size,
+                "mtime": stamp.st_mtime_ns, "source": source.hexdigest()}
+        return hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()
+
+    def recent_replays(self) -> list[dict[str, Any]]:
+        with self.jobs_lock:
+            states = list(self.jobs.values())
+        return [s.to_jsonable() for s in sorted(states, key=lambda s: s.output_dir.stat().st_mtime if s.output_dir.exists() else 0, reverse=True)
+                if s.status == "done"][:20]
 
     def create_job(self, request: ReplayRequest) -> JobState:
         connection = open_readonly(self.database)
         try:
             exists = connection.execute(
-                "SELECT 1 FROM matches WHERE game_id = ? LIMIT 1", (request.game_id,)
+                "SELECT 时长秒 FROM matches WHERE game_id = ? LIMIT 1", (request.game_id,)
             ).fetchone()
         finally:
             connection.close()
         if not exists:
             raise ValueError(f"不存在 game_id={request.game_id} 的比赛")
+        if exists[0] and (request.start or 0) >= exists[0]:
+            raise ValueError("开始时间必须早于比赛结束")
+        if exists[0] and request.end is not None and request.end > exists[0]:
+            raise ValueError("结束时间不能超过比赛时长")
+        cache_key = self.cache_key(request)
         job_id = uuid.uuid4().hex[:12]
-        state = JobState(job_id, request, self.output_root / job_id)
+        state = JobState(job_id, request, self.output_root / job_id, cache_key=cache_key)
         with self.jobs_lock:
+            cached = self.jobs.get(self.cache_keys.get(cache_key, ""))
+            if cached and cached.status != "error" and (cached.status != "done" or (cached.output_dir / "trajectory.html").is_file()):
+                return cached
+            if sum(s.status in {"queued", "running"} for s in self.jobs.values()) >= 8:
+                raise ValueError("待解析任务较多，请等待当前任务完成")
             self.jobs[job_id] = state
+            self.cache_keys[cache_key] = job_id
         self.executor.submit(self._run_job, state)
         return state
 
@@ -303,6 +377,9 @@ class ReplayApplication:
                 state.request,
                 state.update,
             )
+            manifest = {"request": asdict(state.request), "summary": summary,
+                        "cache_key": state.cache_key}
+            (state.output_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
             with state.lock:
                 state.summary = summary
                 state.replay_url = f"/replays/{state.job_id}/trajectory.html"
@@ -319,6 +396,38 @@ class ReplayApplication:
     def get_job(self, job_id: str) -> JobState | None:
         with self.jobs_lock:
             return self.jobs.get(job_id)
+
+    def export_review(self, job_id: str, payload: Any) -> dict[str, str]:
+        state = self.get_job(job_id)
+        if state is None or state.status != "done":
+            raise ValueError("回放尚未生成")
+        if not isinstance(payload, dict) or payload.get("kind") not in {"notes", "scorecard"}:
+            raise ValueError("导出类型不正确")
+        notes = payload.get("notes", [])
+        report = json.loads((state.output_dir / "quality_report.json").read_text(encoding="utf-8"))
+        duration = float(report["match"].get("时长秒") or 420)
+        if not isinstance(notes, list) or len(notes) > 200:
+            raise ValueError("单局最多200条笔记")
+        clean_notes = []
+        for note in notes:
+            if not isinstance(note, dict) or not isinstance(note.get("time"), (float, int)) or isinstance(note["time"], bool):
+                raise ValueError("笔记时间不正确")
+            t = note["time"]
+            body = note.get("text")
+            if not math.isfinite(t) or not 0 <= t <= duration or not isinstance(body, str) or not 0 < len(body) <= 2000:
+                raise ValueError("笔记时间或内容不正确")
+            clean_notes.append({"time": t, "text": body})
+        content = {"game_id": state.request.game_id, "notes": clean_notes}
+        if payload["kind"] == "scorecard":
+            content.update({"match": report["match"], "scores": report["scoring"],
+                            "review": json.loads((state.output_dir / "review.json").read_text(encoding="utf-8")),
+                            "timeseries_scores": json.loads((state.output_dir / "timeseries_scores.json").read_text(encoding="utf-8"))})
+        exports = state.output_dir / "exports"
+        exports.mkdir(exist_ok=True)
+        filename = f'{payload["kind"]}-{uuid.uuid4().hex[:12]}.json'
+        path = exports / filename
+        path.write_text(json.dumps(content, ensure_ascii=False, indent=2), encoding="utf-8")
+        return {"path": str(path), "url": f"/replays/{job_id}/exports/{filename}"}
 
 
 def make_handler(application: ReplayApplication) -> type[BaseHTTPRequestHandler]:
@@ -360,7 +469,13 @@ def make_handler(application: ReplayApplication) -> type[BaseHTTPRequestHandler]
                 return
             if parsed.path == "/api/matches":
                 keyword = parse_qs(parsed.query).get("q", [""])[0]
-                self.send_json({"matches": search_matches(application.database, keyword)})
+                try:
+                    self.send_json({"matches": search_matches(application.database, keyword)})
+                except (OSError, ValueError, sqlite3.Error) as error:
+                    self.send_json({"error": str(error)}, HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+            if parsed.path == "/api/replays":
+                self.send_json({"replays": application.recent_replays()})
                 return
             if parsed.path.startswith("/api/jobs/"):
                 job_id = parsed.path.rsplit("/", 1)[-1]
@@ -370,31 +485,48 @@ def make_handler(application: ReplayApplication) -> type[BaseHTTPRequestHandler]
                 else:
                     self.send_json(state.to_jsonable())
                 return
-            if parsed.path.startswith("/replays/") and parsed.path.endswith("/trajectory.html"):
+            if parsed.path.startswith("/replays/"):
                 parts = parsed.path.strip("/").split("/")
-                if len(parts) != 3:
+                if len(parts) not in {3, 4}:
                     self.send_error(HTTPStatus.NOT_FOUND)
                     return
                 state = application.get_job(parts[1])
                 if state is None or state.status != "done":
                     self.send_error(HTTPStatus.NOT_FOUND)
                     return
-                self.send_file(state.output_dir / "trajectory.html", "text/html; charset=utf-8")
+                if len(parts) == 4:
+                    if parts[2] == "exports" and re.fullmatch(r"(?:notes|scorecard)-[a-f0-9]{12}\.json", parts[3]):
+                        self.send_file(state.output_dir / "exports" / parts[3], "application/json; charset=utf-8")
+                    else:
+                        self.send_error(HTTPStatus.NOT_FOUND)
+                    return
+                types = {"trajectory.html": "text/html; charset=utf-8", "scores.csv": "text/csv; charset=utf-8",
+                         "scores.json": "application/json; charset=utf-8", "review.json": "application/json; charset=utf-8",
+                         "quality_report.json": "application/json; charset=utf-8", "timeseries_scores.json": "application/json; charset=utf-8"}
+                if parts[2] not in types:
+                    self.send_error(HTTPStatus.NOT_FOUND)
+                    return
+                self.send_file(state.output_dir / parts[2], types[parts[2]])
                 return
             self.send_error(HTTPStatus.NOT_FOUND)
 
         def do_POST(self) -> None:
-            if urlparse(self.path).path != "/api/jobs":
+            path = urlparse(self.path).path
+            export = re.fullmatch(r"/api/replays/([a-f0-9]{12})/exports", path)
+            if path != "/api/jobs" and not export:
                 self.send_error(HTTPStatus.NOT_FOUND)
                 return
             try:
                 length = int(self.headers.get("Content-Length", "0"))
-                if length <= 0 or length > 64_000:
+                if length <= 0 or length > (512_000 if export else 64_000):
                     raise ValueError("请求正文为空或过大")
                 payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                if export:
+                    self.send_json(application.export_review(export[1], payload), HTTPStatus.CREATED)
+                    return
                 request = validate_job_payload(payload)
                 state = application.create_job(request)
-            except (ValueError, json.JSONDecodeError) as error:
+            except (ValueError, OSError, sqlite3.Error) as error:
                 self.send_json({"error": str(error)}, HTTPStatus.BAD_REQUEST)
                 return
             self.send_json(state.to_jsonable(), HTTPStatus.ACCEPTED)

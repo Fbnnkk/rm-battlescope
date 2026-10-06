@@ -1,0 +1,38 @@
+{
+  "version": "BattleScope 职责贡献分 v3.2（自定义）",
+  "medium_confidence_weight": 0.7,
+  "low_confidence_weight": 0.35,
+  "positive_budget": 5.0,
+  "pressure_radius_m": 8.0,
+  "pressure_recent_hit_s": 3.0,
+  "retreat_window_s": 4.0,
+  "retreat_distance_m": 1.5,
+  "suppression_cooldown_s": 12.0,
+  "terrain_followup_s": 15.0,
+  "terrain_min_damage": 40.0,
+  "terrain_cooldown_s": 12.0,
+  "assist_window_s": 8.0,
+  "kill_window_s": 2.0,
+  "fire_suppression_weight": 0.35,
+  "fire_min_shots": 3,
+  "fire_heading_deg": 25,
+  "roles": {
+    "英雄": {"robot_damage": [2.1, 350], "structure_damage": [2.6, 900], "death": [1.5, 4], "mission": "重火力输出、建筑攻坚、关键目标击杀"},
+    "工程": {"robot_damage": [0.8, 500], "structure_damage": [0.5, 1000], "death": [1.2, 5], "mission": "科技核心装配、资源支援、任务机动"},
+    "步兵3": {"robot_damage": [2.5, 400], "structure_damage": [1.6, 1200], "death": [1.5, 4], "mission": "输出与协同、前压控场、地形骚扰、能量机关支援"},
+    "步兵4": {"robot_damage": [2.5, 400], "structure_damage": [1.6, 1200], "death": [1.5, 4], "mission": "输出与协同、前压控场、地形骚扰、能量机关支援"},
+    "哨兵": {"robot_damage": [2.5, 350], "structure_damage": [1.6, 1200], "death": [1.5, 4], "mission": "持续交战、前线控制、建筑防守与队友掩护"},
+    "空中": {"robot_damage": [2.6, 700], "structure_damage": [1.5, 1200], "death": [1.0, 4], "mission": "出动输出、协同击杀、前线火力压制"},
+    "飞镖": {"robot_damage": [0, 1], "structure_damage": [4.2, 1000], "death": [0, 1], "mission": "飞镖命中与建筑伤害；闸门开启只作观测"},
+    "雷达": {"robot_damage": [0, 1], "structure_damage": [0, 1], "death": [0, 1], "mission": "标记覆盖、标记期间协同输出、反制无人机"}
+  },
+  "components": {
+    "kills": [1.3, 3], "assists": [0.9, 2],
+    "pressure": [0.75, 45], "suppression": [0.6, 3],
+    "terrain_harassment": [0.65, 3], "terrain_logistics": [0.4, 2],
+    "objective_defense": [0.65, 300], "ally_cover": [0.65, 300],
+    "rune_activations": [0.9, 2], "assembly": [4.2, 4.5],
+    "radar_marking": [2.0, 120], "radar_assists": [1.2, 700],
+    "radar_counter": [1.7, 2], "dart_hits": [0.6, 2]
+  }
+}

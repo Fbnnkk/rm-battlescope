@@ -14,16 +14,17 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from rmuc_trajectory.audit import audit_database, write_audit_outputs
+from rmuc_trajectory.paths import DEFAULT_OUTPUT_ROOT
 
 
-DEFAULT_DB = ROOT / "rmuc_2026_region_dataset" / "rmuc_2026_region_dataset.sqlite"
+DEFAULT_DB = ROOT / "dataset" / "rmuc_2026_region_dataset.sqlite"
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--db", type=Path, default=DEFAULT_DB)
     parser.add_argument(
-        "--output-dir", type=Path, default=ROOT / "outputs" / "trajectory_audit"
+        "--output-dir", type=Path, default=DEFAULT_OUTPUT_ROOT / "trajectory_audit"
     )
     parser.add_argument("--max-gap", type=int, default=3)
     parser.add_argument("--smooth-window", type=int, default=3)

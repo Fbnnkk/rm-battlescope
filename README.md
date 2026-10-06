@@ -1,239 +1,118 @@
 # RM BattleScope
 
-RM BattleScope 是面向 RoboMaster 机甲大师超级对抗赛（RMUC）的赛事数据解析、战术回放与策略研究工具。当前版本围绕 RMUC 2026 区域赛公开 SQLite 数据集构建，提供只读数据查询、比赛检索、轨迹重建、状态可视化和启发式战斗关系推断。
+面向 RoboMaster 机甲大师超级对抗赛（RMUC）的比赛数据浏览、战术回放与个人战绩评分工具。本阶段正式开源版本为 **v1.0.0**，自定义职责评分规则为 **v3.2**；软件发布状态不代表评分经过官方认可或人工准确率校准。
 
-项目不会修改源数据库。所有回放、审计报告和导出文件默认写入本地 `outputs/`。
+项目基于 RMUC 2026 区域赛公开 SQLite 数据，以只读方式加载原始数据。可以搜索学校与比赛、生成包含地图和逐秒状态的回放，在战绩页查看个人贡献、队伍表现、评分依据和关键事件。
 
-RM BattleScope 目前处于早期开发阶段。部分战斗关系和规则状态由规则、秒级遥测与事件组合推断，使用时请结合原始事件和比赛录像复核。欢迎通过 Issue 提交问题、异常案例和改进建议。
+## 安装与启动
 
-## 演示视频
+需要 Python 3.12或3.13，Conda模板使用3.13。纯复盘只安装 NumPy、Matplotlib、Pillow，不需要 PyTorch 或训练环境。
 
-[在哔哩哔哩观看 RM BattleScope 演示视频](https://www.bilibili.com/video/BV1UvKN6LENV/)
-
-[在线体验：北部赛区第 90 场第 1 局静态回放](https://ezthor.github.io/rm-battlescope/replays/north-region-match-90-game-1/)
-
-## 功能概览
-
-### 稳定功能
-
-- 按学校、赛区、赛程或 `game_id` 检索和浏览比赛。
-- 对 SQLite 数据库执行只读查询，查看数据概览、表结构和逐秒状态。
-- 读取秒级轨迹并完成基础清洗，保留原始坐标用于复核。
-- 生成静态图和 HTML 交互回放，同步展示轨迹、血量、热量、朝向、发弹、增益、判罚、战亡与复活状态。
-- 将查询结果导出为 CSV、JSON 或 JSONL。
-- 批量审计越界、缺失、跳点、插值和清洗后残余异常，生成逐局复核报告。
-
-### 实验功能
-
-- 单帧跳点识别、短缺口插值和轨迹平滑。
-- 根据发弹与受击窗口、阵营、口径、枪口朝向和距离匹配攻击关系。
-- 展示累计经济、当前经济、科技核心装配和其他状态时间线，并合并临近的装配标记以减少遮挡。
-
-### 规则推断
-
-- 立即复活、英雄部署吊射和堡垒占领。
-- 基地护甲展开、前哨站旋转、飞镖致盲、无人机反制，以及其他缺少原生字段的机制。
-
-这些结果来自规则、遥测和事件的启发式组合，不等同于裁判系统确认结果。
-
-回放同时支持按帧速播、1×/1.5×/2×/3×/5×实时播放和 `0.25×–8×` 无极调速。按秒播放使用浮点播放游标，可在高刷新率显示器上连续运行。
-
-## 适用范围
-
-本项目适合战术复盘、赛事数据浏览、特征工程和候选样本生成，不适合机器人实时控制、碰撞判断或毫米级路径分析。推断结果需要结合原始事件和比赛录像复核。
-
-## 快速开始
-
-1. 克隆仓库并进入项目目录。
-
-```powershell
-git clone git@github.com:ezthor/rm-battlescope.git
-Set-Location rm-battlescope
+```bash
+git clone https://github.com/Fbnnkk/rm-battlescope.git
+cd rm-battlescope
+python -m venv .venv
 ```
 
-2. 创建并激活 Conda 环境。
+Windows PowerShell 激活：`.\.venv\Scripts\Activate.ps1`。Linux / macOS 激活：`source .venv/bin/activate`。然后：
 
-```powershell
-conda env create --prefix .\.conda\envs\rmuc2026 --file environment.yml
-conda activate .\.conda\envs\rmuc2026
-```
-
-3. 将下载的数据库保存为 `rmuc_2026_region_dataset/rmuc_2026_region_dataset.sqlite`。
-4. 启动 Web 页面。
-
-```powershell
-python .\scripts\rmuc_web.py
-```
-
-5. 打开 <http://127.0.0.1:8765/>。
-
-数据库的下载地址和文件名要求见下一节。
-
-## 数据集准备
-
-用于自动化与策略训练的 RMUC 2026 区域赛部分赛事数据已发布在 RoboMaster 论坛：
-
-<https://bbs.robomaster.com/article/1936220>
-
-从上述页面下载数据集后，将 SQLite 文件放在以下位置，并保持文件名一致：
-
-```text
-rm-battlescope/
-└─ rmuc_2026_region_dataset/
-   └─ rmuc_2026_region_dataset.sqlite
-```
-
-数据库、数据压缩包和规则手册 PDF 不包含在本仓库中，也不会被 Git 跟踪。若希望把数据库放在其他位置，可在命令行中使用 `--db <路径>`。
-
-## 安装
-
-推荐使用 Conda：
-
-```powershell
-git clone git@github.com:ezthor/rm-battlescope.git
-Set-Location rm-battlescope
-conda env create --prefix .\.conda\envs\rmuc2026 --file environment.yml
-conda activate .\.conda\envs\rmuc2026
-```
-
-环境包含 Python 3.13、NumPy、Matplotlib 和 Pillow。SQLite、HTTP 服务和大部分查询能力使用 Python 标准库。
-
-也可以使用已有 Python 3.13 环境安装依赖：
-
-```powershell
+```bash
 python -m pip install -r requirements.txt
+python scripts/rmuc_web.py
 ```
 
-## 启动比赛浏览器
+打开 [本地比赛库](http://127.0.0.1:8765/)。先按下一节准备数据库，再启动服务。已有 Conda 用户也可使用 `environment.yml`，通过 `conda env create --prefix ./.conda/envs/rmuc2026 --file environment.yml` 创建环境。
+
+## 数据集
+
+[RMUC 2026 区域赛公开数据来源：RoboMaster 论坛](https://bbs.robomaster.com/article/1936220)。下载解压后，将 SQLite 文件保存为 `dataset/rmuc_2026_region_dataset.sqlite`。数据库、压缩包、规则手册和训练产物不随源码分发；遵循原发布者的数据使用要求。
+
+数据库放在其他位置时使用：
+
+```bash
+python scripts/rmuc_web.py --db /path/to/rmuc.sqlite --port 9000
+```
+
+默认只监听 `127.0.0.1`，用于本机复盘；本地HTTP服务没有公共多用户服务的认证与隔离设计。
+
+## 个人战绩与评分
+
+总览首先显示比赛结果、双方表现和个人榜单。点击兵种查看得分构成、表现曲线、数据覆盖与贡献依据，再跳到地图核对。队伍均分只统计已评级实体，页面同时显示分母和暂不评级数量。
+
+v3.2 根据可观测的职责贡献折算输出、攻坚、协同、控场、机动、支援和代价：英雄攻坚，步兵交战与机动，哨兵防守，空中出动输出，工程装配，飞镖命中，以及雷达标记与反制。配置见 [configs/scoring_v3.json](configs/scoring_v3.json)。不同兵种职责与数据覆盖不同，分数只能作为复盘线索。
+
+有效遥测已观测到活动但没有可计分贡献时，可以给出中性表现；缺少足够证据时显示“暂不评级”，分数与等级导出为空。例如只记录飞镖开闸，无法确认发射、未命中或伤害，不能自动给5分或C级。工程运输、兑换等未完整观测职责也不能凭空计分。
+
+伤害量和来源分开核对：原始命中事件、原始受击遥测、高可信归因、中可信归因、低可信分摊、未归因有明确标签。高可信仍是遥测启发式推断，不等于裁判系统确认。低可信可按配置折算输出分，但不产生击杀或控场；逐目标核对高＋中＋低＋未归因＝原始弹丸受击HP，原始飞镖命中事件另计，避免混淆。
+
+前压控制、迫退／火力受限、跨地形骚扰和掩护是基于位置与交战窗口的观测迹象，不能确认视线遮挡、操作者意图或战术因果。未观测贡献不等于没有贡献。规则权重与等级阈值尚未通过同步录像、人工标注和独立比赛校准；数据覆盖率、伤害守恒和分数分布均不能替代准确率验证。
+
+## 回放与导出
+
+地图上方提供播放／暂停、前后5秒、常用倍速与时间轴。“回放设置”展开后可切换按帧播放、无极调速、原始点、尾迹、轨迹／事件／攻击置信度过滤以及时刻链接。空格播放／暂停，左右方向键前后5秒，Shift加方向键前后15秒。
+
+关键事件可以按类别、阵营与关键词筛选，点击后从事件前3秒跳转并显示上下文。连续能量机关击打合并为过程，原始记录可展开；击打不自动判为激活成功，未知字段含义不猜测。
+
+本地后端生成的回放支持将战绩JSON和笔记保存到配置的输出目录，并下载评分CSV。笔记也保存在当前浏览器中，可通过JSON导出／导入备份。独立静态回放使用浏览器下载JSON，不请求Python后端；CSV仅在生成文件存在时显示。若内嵌浏览器不支持下载，请在Chrome／Edge中打开回放。
+
+## 输出配置
+
+优先级：**CLI `--output-dir` > `BATTLESCOPE_OUTPUT_DIR` 环境变量 > 项目 `.battlescope.local.json` > 项目 `outputs/`**。普通生成目录均被Git忽略，明确选择的公开演示在 `docs/replays/`。
+
+Windows PowerShell：
 
 ```powershell
-python .\scripts\rmuc_web.py
+$env:BATTLESCOPE_OUTPUT_DIR = 'E:\outputs\RM-BattleScope'
+python scripts/rmuc_web.py
 ```
 
-打开 <http://127.0.0.1:8765/>，搜索学校或选择比赛，设置轨迹清洗参数后开始解析。生成完成后页面会自动进入交互回放。
+Linux / macOS：
 
-可选参数：
-
-```powershell
-python .\scripts\rmuc_web.py --db D:\data\rmuc.sqlite --port 9000
+```bash
+export BATTLESCOPE_OUTPUT_DIR="$HOME/rm-battlescope-results"
+python scripts/rmuc_web.py
 ```
 
-## 命令行使用
+持久的项目本地配置：复制 `.battlescope.example.json` 为 `.battlescope.local.json`，编辑 `output_dir`。该本地文件被忽略，不进入开源提交；相对路径相对于项目根目录。配置错误或目标无法写入时会报错，不会静默改存其他位置。
 
-查看数据库概览和结构：
+`--output-dir` 指定当前命令的实际目标：Web存储回放子目录，单局CLI存储单局文件。省略时分别放在输出根目录的 `web_replays/` 和 `trajectories/<game_id>-<唯一后缀>/`。已有单局回放不会静默覆盖。
 
-```powershell
-python .\scripts\rmuc_sqlite.py summary
-python .\scripts\rmuc_sqlite.py schema
+## 命令行
+
+```bash
+python scripts/rmuc_sqlite.py summary
+python scripts/rmuc_sqlite.py schema
+python scripts/rmuc_sqlite.py matches --school "浙江大学" --limit 10
+python scripts/rmuc_trajectory.py --game-id 1779427046868
+python scripts/rmuc_trajectory.py --game-id 1779427046868 --start 60 --end 180 --min-confidence high --output-dir ./outputs/clip
+python scripts/rmuc_trajectory_audit.py
+python scripts/batch_score.py --help
 ```
 
-查询比赛、事件和逐秒状态：
+单局CLI默认生成 `trajectory.html`、`trajectory.png`、`quality_report.json`、`scores.json`、`scores.csv`、`review.json` 与 `timeseries_scores.json`。`--no-scores` 只生成轨迹，`--gif` 可额外生成GIF。`--return-url ../../index.html` 可为静态导出配置相对演示目录链接。
 
-```powershell
-python .\scripts\rmuc_sqlite.py matches --school "学校名" --limit 10
-python .\scripts\rmuc_sqlite.py events --game-id 1779323658229 --event-type 受击 --limit 20
-python .\scripts\rmuc_sqlite.py timeseries --game-id 1779323658229 --robot-type 英雄 --start 60 --end 90 --limit 50
-```
+## 静态演示与 GitHub Pages
 
-生成一局完整回放：
+[当前源码中的v1.0.0静态演示](docs/replays/east-region-match-27-game-2/index.html)：浙江大学对东南大学，东部第27场第2局。克隆后可直接打开，也可运行 `python -m http.server 8080 --directory docs`，访问 `http://127.0.0.1:8080/`。此命令仅用于浏览静态示例，不能搜索数据库或重新解析比赛。
 
-```powershell
-python .\scripts\rmuc_trajectory.py --game-id 1779323658229
-```
+GitHub Pages只能托管预生成的静态页面，不能运行Python比赛库后端。可将仓库的 `docs/` 配置为Pages发布目录；实际启用状态以仓库设置和部署结果为准。静态页面采用相对目录链接和浏览器下载，适配 `/rm-battlescope/` 项目子路径。仓库保留 [北部第90场历史示例](docs/replays/north-region-match-90-game-1/index.html)，它使用旧版界面与规则，不作为最新版评分案例。
 
-生成指定时间窗与兵种的回放和 GIF：
+[原作者的历史在线演示](https://ezthor.github.io/rm-battlescope/replays/north-region-match-90-game-1/)与[演示视频](https://www.bilibili.com/video/BV1UvKN6LENV/)保留作来源参考，可能与当前功能不同。
 
-```powershell
-python .\scripts\rmuc_trajectory.py --game-id 1779323658229 `
-  --start 0 --end 120 --robot-type 英雄 --robot-type 步兵3 --gif
-```
+## 结构与验证
 
-批量审计数据库中的全部比赛：
+核心源码在 `rmuc_trajectory/`，比赛选择与回放前端在 `rmuc_web/`，命令行入口在 `scripts/`，自定义规则在 `configs/scoring_v3.json`。测试覆盖轨迹处理、伤害归因、评分、缺证据实体、回放摘要和导出。CI在Windows、Linux、macOS上安装复盘依赖并执行全部测试与CLI启动检查。
 
-```powershell
-python .\scripts\rmuc_trajectory_audit.py
-```
-
-## 数据与计算内容
-
-公开数据主要由三张表组成：
-
-| 表 | 粒度 | 主要内容 |
-|---|---|---|
-| `matches` | 每局一行 | 对阵、赛区、赛程、胜方、比赛时间与 `game_id` |
-| `timeseries` | 每局、每秒、每实体 | 血量、位置、朝向、功率、热量、累计发弹、经济与易伤标志 |
-| `events` | 每次事件一行 | 发弹、受击、装配、增益、能量机关、飞镖与无人机反制等事件 |
-
-轨迹管线按以下顺序处理：
-
-```text
-SQLite 秒级状态
-  → 比赛/阵营/机器人/时间窗切片
-  → 场外点与缺失值标记
-  → 单帧定位跳点识别
-  → 短缺口插值
-  → 连续段加权平滑
-  → 残余超速段断线
-  → events 时间对齐
-  → HTML 回放、静态图与质量报告
-```
-
-场地坐标按官方 `28 m × 15 m` 尺寸映射。背景画布以停机坪和有效场地的内侧角点标定，不把外围挡板计入坐标范围。堡垒占领优先使用原始坐标，轨迹绘制使用清洗坐标。
-
-攻击关系、立即复活、部署吊射、堡垒占领和基地护甲展开中有部分状态无法从数据集原生字段直接取得。项目会在界面和报告中标注推断置信度；这些结果适用于战术复盘、特征工程和候选样本生成，不等同于裁判系统确认结果。
-
-## 输出目录
-
-```text
-outputs/
-├─ trajectories/<game_id>/
-│  ├─ trajectory.html
-│  ├─ trajectory.png
-│  └─ quality_report.json
-├─ web_replays/
-└─ trajectory_audit/
-```
-
-`outputs/` 已加入 `.gitignore`。原始数据、查询导出和生成回放不会进入版本库。
-
-## 工程结构
-
-```text
-rmuc_trajectory/                 核心解析、规则推断与渲染模块
-rmuc_web/                        比赛选择前端页面
-scripts/rmuc_web.py              本地 Web 服务入口
-scripts/rmuc_sqlite.py           SQLite 只读查询工具
-scripts/rmuc_trajectory.py       单局轨迹与回放生成器
-scripts/rmuc_trajectory_audit.py 全库质量审计入口
-docs/                            规则、字段映射和轨迹处理说明
-tests/                           单元测试
-assets/                          回放所需场地画布
-environment.yml                 Conda 环境定义
-```
-
-进一步说明：
-
-- [规则与数据索引](docs/RMUC_2026_规则与数据索引.md)
-- [轨迹解析与标定说明](docs/RMUC_2026_轨迹解析说明.md)
-
-## 测试
-
-```powershell
+```bash
 python -m unittest discover -s tests -v
 ```
 
-## 已知边界
+[规则与数据索引](docs/RMUC_2026_规则与数据索引.md)、[轨迹标定说明](docs/RMUC_2026_轨迹解析说明.md)、[本阶段发布说明](docs/RELEASE_v1.0.0.md)。源数据为秒级遥测，场地图为规则手册渲染图，不适用于实时控制、碰撞判断或毫米级路径分析。部分规则状态由遥测与事件组合推断，应结合比赛录像复核。
 
-- 数据是秒级遥测，不适用于控制环、碰撞或毫米级路径分析。
-- 数据允许缺失值，且大表没有数据库级主键和外键约束。
-- 全国赛 V2.x 规则晚于区域赛数据发生时间，不能直接用于解释全部区域赛历史机制。
-- 场地图是规则手册俯视渲染图，不是测绘底图。
-- 规则推断结果应结合原始事件、质量报告和比赛录像复核。
+离线强化学习研究、数据集、模型权重和实验图不属于本次已验收的复盘发布范围，不提供训练性能结论。
 
-## 参与贡献
+## 来源、贡献与许可证
 
-欢迎提交无法正确解析的比赛案例、数据字段解释修正、推断规则反例、可视化改进，以及测试和文档改进。建议先通过 Issue 描述问题和复现条件，再提交 Pull Request（合并请求）。
+本项目沿用 [ezthor/rm-battlescope](https://github.com/ezthor/rm-battlescope) 的赛事解析与回放基础，保留原作者版权、MIT许可证、第三方素材声明和历史演示。本仓库增加个人评分、贡献依据与复盘体验改进，欢迎通过Issue提供具体比赛与复现步骤，并通过Pull Request提交修改。
 
-## 许可证
-
-代码以 [MIT License](LICENSE) 开源。场地图等第三方材料不在 MIT 授权范围内，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。RoboMaster 及相关名称和材料的权利归其各自权利人所有。
+代码以 [MIT License](LICENSE) 开源。场地图等第三方材料不在MIT授权范围内，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。RoboMaster及相关名称、规则、数据和素材权利归各自权利人所有，不暗示官方认可。

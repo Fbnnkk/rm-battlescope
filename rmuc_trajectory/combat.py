@@ -41,6 +41,8 @@ class AttackInference:
     special_mode: str | None = None
     special_confidence: str | None = None
     special_reason: str | None = None
+    hit_count: int = 1
+    damage_candidates: tuple[dict[str, Any], ...] = ()
 
     def to_jsonable(self) -> dict[str, Any]:
         result = asdict(self)
@@ -115,13 +117,18 @@ def infer_attacks(
         for event in events
         if event.event_type == "受击" and event.category in PROJECTILE_WINDOWS
     ]
-    hit_windows: dict[tuple[str | None, int | None, str | None, float], MatchEvent] = {}
+    hit_windows: dict[tuple[str | None, int | None, str | None, float], list[MatchEvent]] = {}
     for hit in hits:
-        hit_windows.setdefault((hit.camp, hit.robot_id, hit.category, hit.time), hit)
+        hit_windows.setdefault((hit.camp, hit.robot_id, hit.category, hit.time), []).append(hit)
     inferences: list[AttackInference] = []
     unresolved = 0
 
-    for hit in hit_windows.values():
+    for window_hits in hit_windows.values():
+        hit = window_hits[0]
+        # Identical native rows are separate bullets. Grouping is for matching,
+        # never for discarding damage (75 outpost hits of 20 HP = 1500 HP).
+        damage = sum(abs(float(h.value)) for h in window_hits
+                     if h.value is not None and math.isfinite(float(h.value)))
         if hit.camp is None or hit.robot_id is None:
             unresolved += 1
             continue
@@ -180,7 +187,14 @@ def infer_attacks(
         if not candidates:
             unresolved += 1
             continue
-        candidates.sort(key=lambda item: item[0], reverse=True)
+        # A shooter's bursts in adjacent seconds are alternative timing evidence,
+        # not different possible attackers.
+        by_shooter = {}
+        for candidate in candidates:
+            actor = (candidate[1].camp, candidate[1].robot_id)
+            if actor not in by_shooter or candidate[0] > by_shooter[actor][0]:
+                by_shooter[actor] = candidate
+        candidates = sorted(by_shooter.values(), key=lambda item: item[0], reverse=True)
         score, shot, attacker_xy, heading, angle, distance, burst_count = candidates[0]
         second_score = candidates[1][0] if len(candidates) > 1 else 0.0
         ambiguous = second_score >= score * 0.85
@@ -198,6 +212,13 @@ def infer_attacks(
             confidence = "medium"
         else:
             confidence = "low"
+        plausible = [c for c in candidates if c[0] >= max(0.05, score * 0.5)]
+        total_weight = sum(c[0] for c in plausible)
+        damage_candidates = tuple({
+            "attacker_camp": c[1].camp, "attacker_robot_id": c[1].robot_id,
+            "attacker_type": c[1].robot_type or "未知", "shot_time": float(c[1].time),
+            "score": c[0], "share": c[0] / total_weight,
+        } for c in plausible)
         deployed_detected = False
         deployed_reason = None
         if objective_ballistic and victim_track.key.robot_type == "基地":
@@ -229,7 +250,9 @@ def infer_attacks(
                 score=score,
                 confidence=confidence,
                 ambiguous=ambiguous,
-                damage=abs(float(hit.value)) if hit.value is not None else None,
+                damage=damage if any(h.value is not None for h in window_hits) else None,
+                hit_count=len(window_hits),
+                damage_candidates=damage_candidates,
                 special_mode="hero_deployed_lob" if deployed_detected else None,
                 special_confidence="high" if deployed_detected else None,
                 special_reason=deployed_reason,

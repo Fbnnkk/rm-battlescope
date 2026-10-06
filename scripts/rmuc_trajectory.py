@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import uuid
 from pathlib import Path
 
 
@@ -25,10 +26,13 @@ from rmuc_trajectory.pipeline import (
     quality_report,
 )
 from rmuc_trajectory.render import render_gif, render_interactive_html, render_static
-from rmuc_trajectory.scoring import compute_scores, compute_timeseries_scores
+from rmuc_trajectory.scoring import compute_score_report
+from rmuc_trajectory.review import build_review
+from rmuc_trajectory.exports import write_scores_csv
+from rmuc_trajectory.paths import DEFAULT_OUTPUT_ROOT
 
 
-DEFAULT_DB = ROOT / "rmuc_2026_region_dataset" / "rmuc_2026_region_dataset.sqlite"
+DEFAULT_DB = ROOT / "dataset" / "rmuc_2026_region_dataset.sqlite"
 
 
 def odd_positive(value: str) -> int:
@@ -52,11 +56,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--smooth-window", type=odd_positive, default=3)
     parser.add_argument("--max-speed", type=float, default=8.0, help="地面轨迹跳变阈值 m/s")
     parser.add_argument("--output-dir", type=Path)
+    parser.add_argument("--return-url", help="相对演示目录链接（静态导出，可选）")
     parser.add_argument("--gif", action="store_true", help="额外输出 GIF 动画")
     parser.add_argument("--fps", type=int, default=12)
     parser.add_argument("--trail-seconds", type=int, default=20)
     parser.add_argument("--hide-raw", action="store_true", help="静态图不绘制原始轨迹")
-    parser.add_argument("--scores", action="store_true", help="输出评分明细 JSON")
+    parser.add_argument("--scores", action="store_true", default=True, help="输出评分明细 JSON（默认启用）")
+    parser.add_argument("--no-scores", dest="scores", action="store_false", help="仅生成轨迹，不计算评分")
+    parser.add_argument("--min-confidence", choices=("high", "medium", "low"), default="low", help="参与评分的最低攻击可信度")
     return parser
 
 
@@ -68,7 +75,9 @@ def main() -> int:
     if args.max_gap < 0 or args.max_speed <= 0 or args.fps <= 0 or args.trail_seconds <= 0:
         parser.error("max-gap、max-speed、fps 和 trail-seconds 必须为正值")
 
-    output_dir = args.output_dir or ROOT / "outputs" / "trajectories" / str(args.game_id)
+    output_dir = args.output_dir or DEFAULT_OUTPUT_ROOT / "trajectories" / f"{args.game_id}-{uuid.uuid4().hex[:8]}"
+    if (output_dir / "trajectory.html").exists():
+        parser.error("输出目录已有回放，请选择新目录以避免覆盖")
     parameters = {
         "game_id": args.game_id,
         "start": args.start,
@@ -114,6 +123,8 @@ def main() -> int:
             end=args.end,
             event_types=args.event_type,
         )
+        match["_is_partial"] = bool((args.start or 0) > 0 or
+                                    (args.end is not None and args.end < float(match.get("时长秒") or 420)))
         output_dir.mkdir(parents=True, exist_ok=True)
         report = quality_report(match, tracks, parameters)
         report["event_alignment"] = event_alignment_summary(events, tracks)
@@ -128,8 +139,8 @@ def main() -> int:
         )
         dart_impacts, dart_summary = infer_dart_impacts(events, objectives)
         if args.scores:
-            scores, scoring_summary = compute_scores(
-                match, tracks, events, attacks, buff_intervals
+            scores, scoring_summary, timeseries_scores = compute_score_report(
+                match, tracks + objectives, events, attacks, buff_intervals, min_confidence=args.min_confidence
             )
             report["scoring"] = scores
             report["scoring_summary"] = scoring_summary
@@ -139,9 +150,9 @@ def main() -> int:
                            ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
-            timeseries_scores = compute_timeseries_scores(
-                match, tracks, events, attacks, buff_intervals
-            )
+            write_scores_csv(output_dir / "scores.csv", scores)
+            review = build_review(match, tracks + objectives, events, scores, timeseries_scores, scoring_summary)
+            (output_dir / "review.json").write_text(json.dumps(review,ensure_ascii=False,indent=2),encoding="utf-8")
             ts_path = output_dir / "timeseries_scores.json"
             ts_path.write_text(
                 json.dumps(timeseries_scores, ensure_ascii=False, indent=2),
@@ -196,7 +207,9 @@ def main() -> int:
             paid_revivals,
             respawn_intervals,
             dart_impacts,
-            return_url="../../../rmuc_web/index.html",
+            scores=scores if args.scores else None,
+            review=review if args.scores else None,
+            return_url=args.return_url,
             timeseries_scores=timeseries_scores if args.scores else None,
         )
         if args.gif:

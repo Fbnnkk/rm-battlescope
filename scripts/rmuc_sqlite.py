@@ -13,7 +13,7 @@ from typing import Any, Iterable, Sequence
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_DB = ROOT / "rmuc_2026_region_dataset" / "rmuc_2026_region_dataset.sqlite"
+DEFAULT_DB = ROOT / "dataset" / "rmuc_2026_region_dataset.sqlite"
 MAX_ROWS = 100_000
 
 

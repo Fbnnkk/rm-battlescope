@@ -244,9 +244,17 @@ def render_interactive_html(
     return_url: str | None = None,
     scores: list[dict[str, Any]] | None = None,
     timeseries_scores: dict[str, list[dict[str, Any]]] | None = None,
+    review: dict[str, Any] | None = None,
+    backend: dict[str, str] | None = None,
 ) -> None:
     image_b64 = base64.b64encode(canvas.image_path.read_bytes()).decode("ascii")
     payload = {
+        "delivery": {
+            "mode": "backend" if backend else "static",
+            "export_url": (backend or {}).get("export_url"),
+            "return_url": return_url,
+            "csv_url": "scores.csv" if (output.parent / "scores.csv").is_file() else None,
+        },
         "field": {
             "width": canvas.width_m,
             "height": canvas.height_m,
@@ -273,6 +281,7 @@ def render_interactive_html(
         "dart_impacts": [impact.to_jsonable() for impact in (dart_impacts or [])],
         "scores": scores or [],
         "timeseries_scores": timeseries_scores or {},
+        "review": review or {},
     }
     data = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
     return_button = (
@@ -285,7 +294,7 @@ def render_interactive_html(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RMUC 2026 连续帧轨迹</title>
+<title>RM BattleScope · 战绩与复盘</title>
 <style>
 :root {{ color-scheme: dark; font-family: system-ui, sans-serif; }}
 body {{ margin: 0; background: #151515; color: #f4f4f4; }}
@@ -357,6 +366,19 @@ canvas {{ position: absolute; inset: 0; width: 100%; height: 100%; }}
 </style>
 </head>
 <body><main>
+<div class="bs-replay-toolbar" id="bsReplayToolbar">
+  <div class="controls bs-primary-playback">
+    <button id="bsPlayToggle" type="button">播放</button>
+    <button id="bsPrev" type="button" aria-label="后退5秒">−5秒</button>
+    <button id="bsNext" type="button" aria-label="前进5秒">+5秒</button>
+    <label>倍速 <select id="bsPlaybackSpeed" aria-label="常用播放倍速"><option>0.5</option><option selected>1</option><option>1.5</option><option>2</option><option>3</option><option>5</option><option>8</option></select>×</label>
+    <label>时间 <output id="time"></output></label>
+    <label class="muted">倒计时 <output id="countdown">07:00</output></label>
+  </div>
+  <input id="slider" type="range" step="1" aria-label="比赛时刻">
+  <div id="bsSeekContext" class="bs-muted" aria-live="polite"></div>
+</div>
+<details class="bs-replay-settings" id="bsReplaySettings"><summary>回放设置 · 播放模式 / 轨迹 / 事件 / 置信度 / 时刻链接</summary><div id="bsSettingsBody">
 <div class="controls">
   {return_button}
   <span class="playback" aria-label="播放模式">
@@ -372,13 +394,10 @@ canvas {{ position: absolute; inset: 0; width: 100%; height: 100%; }}
     <button id="pause" type="button" disabled>暂停</button>
   </span>
 </div>
-<div class="controls">
-  <label>时间 <output id="time"></output></label>
-  <label>比赛倒计时 <output id="countdown">07:00</output></label>
-  <input id="slider" type="range" step="1" aria-label="比赛时刻">
-  <label><input id="raw" type="checkbox"> 原始点</label>
+<div class="controls">  <label><input id="raw" type="checkbox"> 原始点</label>
   <label><input id="damageToggle" type="checkbox" checked> 显示伤害</label>
   <label>尾迹 <input id="trail" type="number" min="1" max="120" value="20" style="width:4em"> 秒</label>
+
 </div>
 <div id="trackFilters" class="filters" aria-label="轨迹筛选"></div>
 <div id="eventFilters" class="filters" aria-label="事件筛选"></div>
@@ -388,6 +407,7 @@ canvas {{ position: absolute; inset: 0; width: 100%; height: 100%; }}
   <label class="item" style="--c:#ffd54a"><input type="checkbox" data-confidence="medium" checked> 中可信</label>
   <label class="item" style="--c:#b8b8b8"><input type="checkbox" data-confidence="low"> 低可信</label>
 </div>
+</div></details>
 <div class="battle-grid">
   <aside id="redRoster" class="roster red" style="--team:#ff3b3b" aria-label="红方机器人状态"></aside>
   <section class="center-column">
@@ -406,6 +426,7 @@ canvas {{ position: absolute; inset: 0; width: 100%; height: 100%; }}
 <script id="payload" type="application/json">{data}</script>
 <script>
 const data = JSON.parse(document.getElementById('payload').textContent);
+function replayEscape(value) {{ return String(value??'').replace(/[&<>"']/g,c=>({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[c])); }}
 const canvas = document.getElementById('field'); const ctx = canvas.getContext('2d');
 const slider = document.getElementById('slider'); const framePlay = document.getElementById('framePlay'); const pauseButton=document.getElementById('pause');
 const speedButtons=[...document.querySelectorAll('.speed-play')]; const customPlay=document.getElementById('customPlay'); const customSpeed=document.getElementById('customSpeed'); const customSpeedValue=document.getElementById('customSpeedValue'); const playbackButtons=[framePlay,...speedButtons,customPlay];
@@ -462,8 +483,8 @@ function fortressEffect(track,now,index) {{
   const armor=baseArmorStates[enemy]; if(now>=180&&firstOutpostDestroyedTimes[enemy]!==null&&now>=firstOutpostDestroyedTimes[enemy]&&(!armor||now<armor.time)&&insideFortress(point,enemy)) return {{kind:'vulnerable',zoneCamp:enemy,label:`敌方堡垒虚弱·100%易伤${{track.vulnerable[index]?'·遥测确认':'·位置推定'}}`}};
   return null;
 }}
-document.getElementById('trackFilters').innerHTML = data.tracks.map((t,i)=>`<label class="item" style="--c:${{colors[t.key.camp] || '#ffd54a'}}"><input type="checkbox" data-track="${{i}}" checked>${{t.label}}</label>`).join('');
-document.getElementById('eventFilters').innerHTML = eventTypes.length ? '<span class="muted">事件</span>'+eventTypes.map(type=>`<label class="item" style="--c:${{eventColors[type] || '#f5f5f5'}}"><input type="checkbox" data-event="${{type}}" ${{type==='发弹'?'':'checked'}}>${{type}}</label>`).join('') : '';
+document.getElementById('trackFilters').innerHTML = data.tracks.map((t,i)=>`<label class="item" style="--c:${{colors[t.key.camp] || '#ffd54a'}}"><input type="checkbox" data-track="${{i}}" checked>${{replayEscape(t.label)}}</label>`).join('');
+document.getElementById('eventFilters').innerHTML = eventTypes.length ? '<span class="muted">事件</span>'+eventTypes.map(type=>`<label class="item" style="--c:${{eventColors[type] || '#f5f5f5'}}"><input type="checkbox" data-event="${{replayEscape(type)}}" ${{type==='发弹'?'':'checked'}}>${{replayEscape(type)}}</label>`).join('') : '';
 document.getElementById('legend').innerHTML = '<span class="muted">箭头由攻击方指向受击方；青色分段环为前哨站旋转，橙色展开线为基地护甲，绿色/红色虚线区为堡垒增幅/虚弱；红色也表示普通受击和碎盾易伤。实线为高可信，虚线为中/低可信。</span>';
 function entityId(camp,robotId) {{ return `${{camp}}-${{robotId}}`; }}
 function frameIndex(track,now) {{ return track ? track.times.indexOf(Math.floor(Number(now)+1e-6)) : -1; }}
@@ -477,9 +498,9 @@ function poseAt(track,now,useRaw=false) {{
 function rosterMarkup(camp) {{
   const tracks=unitOrder.map(type=>data.tracks.find(track=>track.key.camp===camp&&track.key.robot_type===type)).filter(Boolean);
   const school=tracks[0]?.key.school||'';
-  const units=tracks.map(track=>`<article id="unit-${{entityId(camp,track.key.robot_id)}}" class="unit-card"><div class="unit-head"><span class="unit-name"><span class="unit-number">${{unitNumber(track.key.robot_id)}}</span><span>${{track.key.robot_type}}</span></span><span id="hp-text-${{entityId(camp,track.key.robot_id)}}">—</span></div><div class="hp-track"><div id="hp-fill-${{entityId(camp,track.key.robot_id)}}" class="hp-fill"></div></div><div id="respawn-${{entityId(camp,track.key.robot_id)}}" class="respawn-row"><span id="respawn-text-${{entityId(camp,track.key.robot_id)}}"></span><div class="respawn-track"><div id="respawn-fill-${{entityId(camp,track.key.robot_id)}}" class="respawn-fill"></div></div></div><div class="unit-stats"><span id="heat-${{entityId(camp,track.key.robot_id)}}">热量 —</span><span id="shots-${{entityId(camp,track.key.robot_id)}}">发弹 —</span></div><div class="score-row"><span id="kda-${{entityId(camp,track.key.robot_id)}}" class="kda-text">0/0/0</span><span id="dmg-${{entityId(camp,track.key.robot_id)}}" class="dmg-text">0</span><span class="score-label">评分</span><span id="score-text-${{entityId(camp,track.key.robot_id)}}" class="score-value">5.0</span><div class="score-track"><div id="score-fill-${{entityId(camp,track.key.robot_id)}}" class="score-fill mid" style="width:50%"></div></div></div><div id="status-${{entityId(camp,track.key.robot_id)}}" class="unit-status"></div></article>`).join('');
-  const objectives=data.objectives.filter(track=>track.key.camp===camp).map(track=>`<article id="objective-card-${{entityId(camp,track.key.robot_id)}}" class="objective-card"><div class="objective-head"><span>${{track.key.robot_type}}</span><span id="objective-hp-${{entityId(camp,track.key.robot_id)}}">—</span></div><div class="hp-track"><div id="objective-fill-${{entityId(camp,track.key.robot_id)}}" class="hp-fill"></div></div><div id="objective-status-${{entityId(camp,track.key.robot_id)}}" class="unit-status"></div></article>`).join('');
-  return `<div class="roster-title"><div><strong>${{camp}}方</strong><span class="muted">${{school}}</span></div><span id="team-score-${{camp}}" class="team-score">—</span></div>${{units}}<div class="objectives">${{objectives}}</div>`;
+  const units=tracks.map(track=>`<article id="unit-${{entityId(camp,track.key.robot_id)}}" class="unit-card"><div class="unit-head"><span class="unit-name"><span class="unit-number">${{unitNumber(track.key.robot_id)}}</span><span>${{replayEscape(track.key.robot_type)}}</span></span><span id="hp-text-${{entityId(camp,track.key.robot_id)}}">—</span></div><div class="hp-track"><div id="hp-fill-${{entityId(camp,track.key.robot_id)}}" class="hp-fill"></div></div><div id="respawn-${{entityId(camp,track.key.robot_id)}}" class="respawn-row"><span id="respawn-text-${{entityId(camp,track.key.robot_id)}}"></span><div class="respawn-track"><div id="respawn-fill-${{entityId(camp,track.key.robot_id)}}" class="respawn-fill"></div></div></div><div class="unit-stats"><span id="heat-${{entityId(camp,track.key.robot_id)}}">热量 —</span><span id="shots-${{entityId(camp,track.key.robot_id)}}">发弹 —</span></div><div class="score-row"><span id="kda-${{entityId(camp,track.key.robot_id)}}" class="kda-text">0/0/0</span><span id="dmg-${{entityId(camp,track.key.robot_id)}}" class="dmg-text">0</span><span class="score-label">评分</span><span id="score-text-${{entityId(camp,track.key.robot_id)}}" class="score-value">5.0</span><div class="score-track"><div id="score-fill-${{entityId(camp,track.key.robot_id)}}" class="score-fill mid" style="width:50%"></div></div></div><div id="status-${{entityId(camp,track.key.robot_id)}}" class="unit-status"></div></article>`).join('');
+  const objectives=data.objectives.filter(track=>track.key.camp===camp).map(track=>`<article id="objective-card-${{entityId(camp,track.key.robot_id)}}" class="objective-card"><div class="objective-head"><span>${{replayEscape(track.key.robot_type)}}</span><span id="objective-hp-${{entityId(camp,track.key.robot_id)}}">—</span></div><div class="hp-track"><div id="objective-fill-${{entityId(camp,track.key.robot_id)}}" class="hp-fill"></div></div><div id="objective-status-${{entityId(camp,track.key.robot_id)}}" class="unit-status"></div></article>`).join('');
+  return `<div class="roster-title"><div><strong>${{camp}}方</strong><span class="muted">${{replayEscape(school)}}</span></div><span id="team-score-${{camp}}" class="team-score">—</span></div>${{units}}<div class="objectives">${{objectives}}</div>`;
 }}
 document.getElementById('redRoster').innerHTML=rosterMarkup('红');
 document.getElementById('blueRoster').innerHTML=rosterMarkup('蓝');
@@ -547,7 +568,7 @@ function updateScores(now) {{
   const camps = ['红','蓝'];
   camps.forEach(camp => {{
     const entries = data.timeseries_scores[camp] || [];
-    let teamTotal = 0;
+    let teamTotal = 0, ratedCount = 0;
     entries.forEach(entry => {{
       const times = entry.times;
       const scores = entry.score;
@@ -565,22 +586,22 @@ function updateScores(now) {{
       const dmgEl = document.getElementById(`dmg-${{id}}`); if (dmgEl && entry.damage !== undefined) {{ dmgEl.textContent = Math.round(entry.damage[idx]); }} }}
       const fillEl = document.getElementById(`score-fill-${{id}}`);
       if (textEl) {{
-        textEl.textContent = score.toFixed(1);
+        textEl.textContent = score===null ? '未评级' : score.toFixed(1);
         if (score >= 7.5) textEl.style.color = '#69f0ae';
         else if (score >= 5.5) textEl.style.color = '#ffd54a';
         else textEl.style.color = '#ff5252';
       }}
       if (fillEl) {{
-        fillEl.style.width = `${{score * 10}}%`;
+        fillEl.style.width = `${{score===null ? 0 : score * 10}}%`;
         fillEl.classList.remove('high', 'mid', 'low');
         if (score >= 7.5) fillEl.classList.add('high');
         else if (score >= 5.5) fillEl.classList.add('mid');
         else fillEl.classList.add('low');
       }}
-      teamTotal += score;
+      if(score!==null) {{ teamTotal += score; ratedCount++; }}
     }});
     const teamEl = document.getElementById(`team-score-${{camp}}`);
-    if (teamEl) teamEl.textContent = `总分 ${{teamTotal.toFixed(1)}}`;
+    if (teamEl) teamEl.textContent = ratedCount ? `均分 ${{(teamTotal/ratedCount).toFixed(1)}} · ${{ratedCount}}个` : '暂无评级';
   }});
 }}
 function updateEconomy(now) {{
@@ -650,7 +671,7 @@ function drawObjectiveHud(now) {{
   data.objectives.forEach(track=>{{ const pose=poseAt(track,now,false); if(!pose) return; const [x,y]=xy(pose.point), index=pose.index, health=track.health[index], maxHealth=track.max_health[index]; if(health===null||maxHealth===null||maxHealth<=0) return;
     const ratio=Math.max(0,Math.min(1,health/maxHealth)), width=(track.key.robot_type==='基地'?72:58)*dpr, height=7*dpr, top=y-(track.key.robot_type==='基地'?32:25)*dpr, left=x-width/2, color=colors[track.key.camp]||'#fff';
     ctx.save(); ctx.globalAlpha=.96; ctx.fillStyle='rgba(10,10,10,.9)'; ctx.fillRect(left-2*dpr,top-2*dpr,width+4*dpr,height+4*dpr); ctx.fillStyle='#383838'; ctx.fillRect(left,top,width,height); ctx.fillStyle=color; ctx.fillRect(left,top,width*ratio,height); ctx.strokeStyle='#f2f2f2'; ctx.lineWidth=1*dpr; ctx.strokeRect(left,top,width,height);
-    ctx.textAlign='center'; ctx.textBaseline='bottom'; ctx.font=`600 ${{10*dpr}}px system-ui,sans-serif`; ctx.lineWidth=3*dpr; ctx.strokeStyle='rgba(0,0,0,.92)'; const label=`${{track.key.camp}}方${{track.key.robot_type}} ${{Math.round(health)}}/${{Math.round(maxHealth)}}`; ctx.strokeText(label,x,top-3*dpr); ctx.fillStyle='#fff'; ctx.fillText(label,x,top-3*dpr); ctx.restore();
+    ctx.textAlign='center'; ctx.textBaseline='bottom'; ctx.font=`600 ${{10*dpr}}px system-ui,sans-serif`; ctx.lineWidth=3*dpr; ctx.strokeStyle='rgba(0,0,0,.92)'; const label=`${{track.key.camp}}方${{replayEscape(track.key.robot_type)}} ${{Math.round(health)}}/${{Math.round(maxHealth)}}`; ctx.strokeText(label,x,top-3*dpr); ctx.fillStyle='#fff'; ctx.fillText(label,x,top-3*dpr); ctx.restore();
   }});
 }}
 function drawArenaMechanics(now) {{
@@ -743,6 +764,7 @@ function drawAttacks(now) {{
   return current.slice(0,5).map(a=>{{ const objective=a.victim_type==='基地'||a.victim_type==='前哨站', victim=objective?`${{a.victim_camp}}${{a.victim_type}}`:`${{a.victim_camp}}${{unitNumber(a.victim_robot_id)}}`; return `${{a.hit_time.toFixed(1)}}s 推断：${{a.attacker_camp}}${{unitNumber(a.attacker_robot_id)}} → ${{victim}} · ${{a.caliber}}${{a.damage!==null?' · '+Math.round(a.damage)+'伤害':''}} · ${{a.confidence==='high'?'高':a.confidence==='medium'?'中':'低'}}可信${{a.special_mode==='hero_deployed_lob'?' · 英雄部署吊射推定（150%攻击增益）':a.continuous_count>1?' · 连续×'+a.continuous_count:''}}${{objective&&a.attacker_type==='英雄'&&a.caliber==='42mm'?' · 抛射事件关联':' · 偏角'+a.angle_error_deg.toFixed(1)+'°'}}`; }});
 }}
 function draw() {{
+  const play=document.getElementById('bsPlayToggle'); if(play) play.textContent=timer||animationFrame!==null?'暂停':'播放';
   if(!canvas.width) return; ctx.clearRect(0,0,canvas.width,canvas.height);
   if(image.complete) {{ const [l,t,r,b]=data.field.crop; ctx.globalAlpha=0.82; ctx.drawImage(image,image.width*l,image.height*t,image.width*(r-l),image.height*(b-t),0,0,canvas.width,canvas.height); }}
   const now=Number(slider.value); if(rawToggle.checked) data.tracks.forEach((t,i)=>drawTrack(t,i,now,true,false)); data.tracks.forEach((t,i)=>drawTrack(t,i,now,false,false));
@@ -755,9 +777,9 @@ function draw() {{
   const details=[...dartDetails,...deployedDetails,...revivalDetails,...arenaDetails,...eventDetails,...attackDetails]; document.getElementById('detail').textContent=details.join('；') || `${{now.toFixed(Number.isInteger(now)?0:2)}}s 无已选事件或攻击推断`;
   updateRosters(now); updateEconomy(now); ctx.globalAlpha=1; timeOut.value=`${{now.toFixed(Number.isInteger(now)?0:2)}} s`; const remaining=Math.max(0,Math.ceil(420-now)); countdownOut.value=`${{String(Math.floor(remaining/60)).padStart(2,'0')}}:${{String(remaining%60).padStart(2,'0')}}`;
 }}
-function stop() {{ if(timer) clearInterval(timer); if(animationFrame!==null) cancelAnimationFrame(animationFrame); timer=null; animationFrame=null; playbackButtons.forEach(button=>button.setAttribute('aria-pressed','false')); pauseButton.disabled=true; }}
+function stop() {{ if(timer) clearInterval(timer); if(animationFrame!==null) cancelAnimationFrame(animationFrame); timer=null; animationFrame=null; playbackButtons.forEach(button=>button.setAttribute('aria-pressed','false')); pauseButton.disabled=true; document.getElementById('bsPlayToggle').textContent='播放'; }}
 function startFramePlayback(button) {{ stop(); button.setAttribute('aria-pressed','true'); pauseButton.disabled=false; slider.step='1'; slider.value=Math.floor(Number(slider.value)); timer=setInterval(()=>{{ let value=Math.floor(Number(slider.value))+1; if(value>maxT) value=minT; slider.value=value; draw(); }},100); }}
-function startSmoothPlayback(speedProvider,button) {{ stop(); button.setAttribute('aria-pressed','true'); pauseButton.disabled=false; slider.step='any'; let previous=performance.now(), playhead=Number(slider.value); const tick=timestamp=>{{ const elapsed=Math.max(0,(timestamp-previous)/1000); previous=timestamp; const speed=Math.max(.05,Number(speedProvider())||1); playhead+=elapsed*speed; const duration=maxT-minT; if(duration>0&&playhead>maxT) playhead=minT+((playhead-minT)%duration); slider.value=String(playhead); draw(); animationFrame=requestAnimationFrame(tick); }}; animationFrame=requestAnimationFrame(tick); }}
+function startSmoothPlayback(speedProvider,button) {{ stop(); button.setAttribute('aria-pressed','true'); pauseButton.disabled=false; document.getElementById('bsPlayToggle').textContent='暂停'; slider.step='any'; let previous=performance.now(), playhead=Number(slider.value); const tick=timestamp=>{{ const elapsed=Math.max(0,(timestamp-previous)/1000); previous=timestamp; const speed=Math.max(.05,Number(speedProvider())||1); playhead+=elapsed*speed; const duration=maxT-minT; if(duration>0&&playhead>maxT) playhead=minT+((playhead-minT)%duration); slider.value=String(playhead); draw(); animationFrame=requestAnimationFrame(tick); }}; animationFrame=requestAnimationFrame(tick); }}
 framePlay.addEventListener('click',()=>startFramePlayback(framePlay));
 speedButtons.forEach(button=>button.addEventListener('click',()=>startSmoothPlayback(()=>Number(button.dataset.speed)||1,button)));
 customPlay.addEventListener('click',()=>startSmoothPlayback(()=>Number(customSpeed.value)||1,customPlay));
@@ -767,7 +789,12 @@ slider.addEventListener('input',()=>{{ if(timer||animationFrame!==null) stop(); 
 document.getElementById('trackFilters').addEventListener('change',event=>{{ const value=Number(event.target.dataset.track); if(event.target.checked) visibleTracks.add(value); else visibleTracks.delete(value); draw(); }});
 document.getElementById('eventFilters').addEventListener('change',event=>{{ const value=event.target.dataset.event; if(event.target.checked) visibleEvents.add(value); else visibleEvents.delete(value); draw(); }});
 document.getElementById('attackFilters').addEventListener('change',event=>{{ const value=event.target.dataset.confidence; if(event.target.checked) visibleAttackConfidence.add(value); else visibleAttackConfidence.delete(value); draw(); }});
+document.getElementById('bsPlayToggle').onclick=()=>{{ if(timer||animationFrame!==null) stop(); else startSmoothPlayback(()=>Number(customSpeed.value)||1,customPlay); }};
+document.getElementById('bsPlaybackSpeed').onchange=event=>{{ customSpeed.value=event.target.value; customSpeed.dispatchEvent(new Event('input')); }};
 image.addEventListener('load',draw); window.addEventListener('resize',resize); resize();
 </script></body></html>"""
+    ui_root = Path(__file__).resolve().parents[1] / "rmuc_web"
+    html = html.replace("</style>", (ui_root / "replay.css").read_text(encoding="utf-8") + "\n</style>", 1)
+    html = html.replace("</script></body></html>", "</script><script>\n" + (ui_root / "replay.js").read_text(encoding="utf-8") + "\n</script></body></html>")
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(html, encoding="utf-8")
