@@ -105,4 +105,8 @@ def main():
     return 1 if errors else 0
 
 
-if __name__=='__main__':raise SystemExit(main())
+if __name__=='__main__':
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
+    raise SystemExit(main())
