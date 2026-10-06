@@ -4,6 +4,9 @@ import json
 import re
 import tempfile
 import unittest
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 from test_scoring import _track
@@ -16,6 +19,14 @@ from rmuc_trajectory.scoring import compute_score_report
 
 
 class ReleaseExportTests(unittest.TestCase):
+    def test_cli_help_runs_with_non_unicode_default_console(self):
+        root=Path(__file__).resolve().parents[1]
+        for name in ('rmuc_web.py','rmuc_trajectory.py','rmuc_sqlite.py','rmuc_trajectory_audit.py','batch_score.py'):
+            with self.subTest(command=name):
+                result=subprocess.run([sys.executable,str(root/'scripts'/name),'--help'],env=dict(os.environ,PYTHONIOENCODING='ascii'),capture_output=True,encoding='utf-8',timeout=30)
+                self.assertEqual(result.returncode,0,result.stderr)
+                self.assertIn('usage:',result.stdout)
+
     def test_output_default_is_inside_supplied_project(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
